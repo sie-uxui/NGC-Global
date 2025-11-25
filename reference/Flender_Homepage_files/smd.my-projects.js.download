@@ -1,0 +1,1045 @@
+ACC.myprojects = {
+  _autoload: [
+    'initPageEvents',
+    'bindChangeHistoryIcon',
+    'bindFocusToEnd',
+    'bindEditNameLink',
+    'bindEditDescriptionLink',
+    'bindEditPrivateStateLink',
+    'bindEditAddressLink',
+    'bindRemoveAddressLink',
+    'bindSaveProjectLink',
+    'bindShowRemoveProjectConfirmation',
+    'bindSelectCheckbox',
+    'bindRemoveSelectedEntriesLink',
+    'bindRevalidateSelectedEntriesLink',
+    'bindAddSelectedEntriesToCartLink',
+    'bindAddToComparisonListLink',
+    'bindQuantityChangeEvent',
+    'bindImportProjectCSVActions',
+    'checkDescriptionHeightForToggle',
+    'bindToggleDescription',
+    'bindCopyButtons',
+    'bindEditDebitorNumber',
+    'bindCustomNameEditButton',
+  ],
+
+  initPageEvents: function () {
+    var $detailsPage = $(
+      'body.page-spiceProductDetails, body.page-productDetails, body.page-product-comparison, body.page-equipment-details, body.page-casProductDetails, body.page-quickOrderPage'
+    );
+    if ($detailsPage.length) {
+      var $selector = $detailsPage.find('.js-project-selector'),
+        $spinner = $selector.find('.spinner'),
+        $select = $selector.find('.js-project-selector-select'),
+        $dropdownArrow = $selector.find('.project-dropdown-arrow');
+      var $optionList = $selector.find('.options-list');
+      $spinner.show();
+      const htmlOptions = [];
+
+      function filterHtmlOptions(htmlOptions, filterText) {
+        $optionList.empty();
+        const result = htmlOptions.filter((option) =>
+          option.value.toLowerCase().includes(filterText.toLowerCase())
+        );
+        result.forEach((option) => {
+          const liElement = document.createElement('li');
+          liElement.id = option.key;
+          liElement.innerHTML = option.value;
+          $optionList.append(liElement);
+        });
+        const options = $('.options-list li');
+        options.on('click', function () {
+          const $selectedOption = $(this);
+          options.removeClass('selected');
+
+          $selectedOption.addClass('selected');
+
+          $select.val($selectedOption.text());
+          $selector.attr('selected_code', $selectedOption.attr('id'));
+          $select.attr('selected_code', $selectedOption.attr('id'));
+
+          $optionList.hide();
+          $dropdownArrow.removeClass('opened');
+          $selector.trigger('change');
+        });
+      }
+
+      if ($optionList.length) {
+        document.addEventListener('click', (event) => {
+          if (!event.target.closest('.js-project-selector-select') && !event.target.closest('.project-dropdown-arrow')) {
+            $optionList.hide();
+            $dropdownArrow.removeClass('opened');
+          }
+        });
+        $select.on('click', function (e) {
+          const currentSelect = $(this);
+          const option = currentSelect.siblings('.options-list');
+          $optionList.css('display', 'block');
+          if(!$dropdownArrow.hasClass('opened')){
+            $dropdownArrow.addClass('opened');
+          }
+
+          $('.options-list').not(option).hide();
+        });
+        $dropdownArrow.on('click', function (e) {
+          if($dropdownArrow.hasClass('opened')){
+            $optionList.hide();
+            $dropdownArrow.removeClass('opened');
+          }else{
+            $optionList.css('display', 'block');
+            $dropdownArrow.addClass('opened');
+          }
+        });
+        $select.on('input', function (e) {
+          filterHtmlOptions(htmlOptions, e.target.value);
+        });
+
+        $.ajax({
+          url: $optionList.data('url'),
+          method: 'GET',
+          success: function (response) {
+            Object.keys(response).forEach(function (key) {
+              htmlOptions.push({ value: response[key], key });
+              htmlOptions.sort((aElement, bElement) =>
+                aElement.value.localeCompare(bElement.value)
+              );
+              filterHtmlOptions(htmlOptions, '');
+            });
+          },
+          complete: function () {
+            $spinner.hide();
+          },
+        });
+      }
+
+      $.fn.getSelected = function () {
+        return this.attr('selected_code') ? this.attr('selected_code') : null;
+      };
+
+      $selector.change(function (e) {
+        if (e.stopButtonHandling) {
+            return;
+        }
+
+        var selectedId = $selector.getSelected(),
+          $addBtn = $selector.siblings().find('button');
+        if (selectedId && selectedId.length) {
+          $addBtn.removeAttr('disabled').removeClass('none-selected');
+        } else {
+          $addBtn.attr('disabled', true).addClass('none-selected');
+        }
+      });
+    }
+
+    $('#collapseNew').on('show.bs.collapse', function () {
+      var $headingNew = $('#headingNew'),
+        $btn = $headingNew.find('.btn'),
+        $showIcons = $headingNew.find('.show-state'),
+        $editIcons = $headingNew.find('.edit-state');
+      $btn.attr('disabled', true);
+      $showIcons.hide();
+      $editIcons.show();
+    });
+
+    $('#collapseNew').on('hidden.bs.collapse', function () {
+      var $headingNew = $('#headingNew'),
+        $btn = $headingNew.find('.btn'),
+        $showIcons = $headingNew.find('.show-state'),
+        $editIcons = $headingNew.find('.edit-state');
+      $btn.removeAttr('disabled');
+      $editIcons.hide();
+      $showIcons.show();
+    });
+
+    $('#project-position-lines').sortable({
+      handle: '.js_sortable-handle',
+      update: function (event, ui) {
+        var $trList = ui.item.closest('tbody').children('tr'),
+          data = {};
+        $trList.each(function (index) {
+          $(this)
+            .data('entry-no', index + 1)
+            .find('.js_entry-no > span')
+            .text(index + 1);
+          data[$(this).data('entry-no-current')] = index + 1;
+          $(this).data('entry-no-current', index + 1);
+        });
+
+        $.ajax({
+          url: ui.item.closest('form').attr('action') + '/sortEntries',
+          method: 'POST',
+          dataType: 'json',
+          contentType: 'application/json',
+          data: JSON.stringify(data),
+          complete: function () {
+            //console.log("success")
+          },
+        });
+      },
+    });
+
+    $('#project-position-lines').disableSelection();
+
+    document.querySelectorAll('.responsive-table-item').values().forEach(item => {
+      const productInfoUrl = $(item).find(".product-info-data").data('url');
+      const loadmask = item.querySelector('#loadmask_config');
+
+      if (!productInfoUrl) {
+        if (loadmask) {
+          loadmask.style.display = "none";
+        }
+
+        return;
+      }
+
+      $.ajax({
+        url: productInfoUrl,
+        method: 'GET',
+        success: function (response) {
+          const productidentifier = item.querySelector('#productidentifier-from-cas')
+          productidentifier.style.display = "block";
+          loadmask.style.display = "none";
+          productidentifier.innerHTML = response.productIdentification;
+        },
+        error: function() {
+          loadmask.style.display = "none";
+        }
+      });
+    });
+  },
+
+  toggleMyProjectsAddButton: function (state, $btn) {
+    var $pageBtn =
+        $btn && $btn.length ? $btn : $('body').find('.add-to-project-btn'),
+      showSpinner = !!(!state && $btn && $btn.length),
+      $addSupportTicketLink = $('#addSupportTicket');
+
+    $pageBtn.toggleClass('process', showSpinner);
+    $addSupportTicketLink
+      .attr('disabled', !state)
+      .closest('.smd.action')
+      .toggleClass('link-spinner', !state);
+
+    if ($pageBtn && $pageBtn.length && $pageBtn.hasClass('keep-disabled')) {
+      return;
+    }
+
+    if ($btn && $btn.length) {
+      $btn.attr('disabled', !state);
+      return;
+    }
+
+    $pageBtn.each(function (idx, el) {
+      if (!state) {
+        $(el).attr('disabled', !state);
+      } else {
+        var $selector = $(el)
+            .closest('form')
+            .find('.js-project-selector-select'),
+          selectedId = $selector.getSelected(),
+          isSelected = selectedId && selectedId.length > 0;
+        $(el).attr('disabled', !isSelected);
+      }
+    });
+  },
+
+  handleProductCode: function ($form, formData) {
+    if (!$form || !$form.length || !formData || !formData.length) {
+      return;
+    }
+
+    var productCode = $form.closest('.js_product-code-element').data('code');
+    if (!productCode) {
+      return;
+    }
+
+    $.each(formData, function (index, element) {
+      if (element && element.name === 'productCodePost' && !element.value) {
+        element.value = productCode;
+      }
+    });
+  },
+
+  handleConfigId: function ($form, formData) {
+    if (!$form || !$form.length || !formData || !formData.length) {
+      return;
+    }
+
+    var configId = $form.closest('.js_product-code-element').data('configid');
+    if (!configId) {
+      return;
+    }
+
+    var found = false;
+    $.each(formData, function (index, element) {
+      if (element && element.name === 'configId') {
+        found = true;
+        if (!element.value) {
+          element.value = configId;
+        }
+      }
+    });
+
+    if (!found) {
+      formData.push({ name: 'configId', value: configId, type: 'hidden' });
+    }
+  },
+
+  bindChangeHistoryIcon: function () {
+    $(document).on('click', '.js-info-link', function (e) {
+      e.preventDefault();
+      var content = $('.change-history-content-holder').html();
+
+      ACC.colorbox.open('', {
+        html: content,
+        maxHeight: '50%',
+        width: 700,
+        height: false,
+        onComplete: function () {
+          //ACC.colorbox.resize();
+        },
+      });
+    });
+  },
+  bindCustomNameEditButton: function () {
+    $(document).on(
+      'click',
+      '.js_edit-project-product_custom_name',
+      function (e) {
+        var entryno = $(this).data('entryno');
+
+        e && e.preventDefault();
+        var popupTitle = $(this).data('title');
+
+        ACC.colorbox.open(popupTitle, {
+          inline: true,
+          width: 800,
+          height: false,
+          href: '#popup_change_custom_name_' + entryno,
+          className: 'save-user-product-configuration-popup',
+          onComplete: function () {
+            $(this).colorbox.resize();
+          },
+        });
+        $(document).on(
+          'click',
+          '#popup_change_custom_name_' + entryno + ' a.btn-primary',
+          function (e) {
+            e && e.preventDefault();
+            var entryno = $(this).data('entryno');
+            var url = $(this).data('url');
+            var projectcode = $(this).data('projectcode');
+            const customName = $(
+              '#popupSaveUserProjectCustomName-' + entryno
+            ).val();
+
+            const saveButton = $(".update-custom-name-btn");
+            saveButton.attr('disabled', true);
+
+            $.ajax({
+              url,
+              method: 'POST',
+              data: JSON.stringify({
+                projectcode,
+                entryno,
+                customName,
+              }),
+              contentType: 'application/json',
+              success: function (result) {
+                $(`#custom-name-${entryno}`).text(result);
+                ACC.colorbox.close();
+              },
+              complete: function () {
+                saveButton.removeAttr('disabled');
+              }
+            });
+
+            return true;
+          }
+        );
+
+        return true;
+      }
+    );
+  },
+
+  bindFocusToEnd: function () {
+    $.fn.focusTextToEnd = function () {
+      this.focus();
+      var $thisVal = this.val();
+      this.val('').val($thisVal);
+      return this;
+    };
+  },
+
+  bindEditNameLink: function () {
+    $(document).on(
+      'click',
+      '.js_edit-project-name, .js_cancel-project-name, .js_project-name',
+      function (e) {
+        return ACC.myprojects._toggleEditProjectName(e);
+      }
+    );
+
+    $(document).on('click', '.js_save-project-name', function (e) {
+      var $nameEdit = $(e.currentTarget).closest('.edit-state'),
+        $nameField = $nameEdit.find('input'),
+        $nameRead = $nameEdit.siblings('.show-state'),
+        $form = $(e.currentTarget).closest('form');
+
+      $.ajax({
+        url: $form.attr('action') + '/name',
+        method: 'POST',
+        data: 'name=' + $nameField.val() + '&code=' + $form.data('code'),
+        success: function () {
+          $nameRead.children('span').html($nameField.val());
+        },
+        complete: function () {
+          window.location.reload();
+        },
+      });
+
+      return false;
+    });
+  },
+
+  _toggleEditProjectName: function (e) {
+    var $nameRead = $(e.currentTarget).closest('.col').children('.show-state'),
+      $nameEdit = $nameRead.siblings('.edit-state');
+    $nameEdit.toggle();
+    $nameRead.toggle();
+    if ($nameEdit.children('input').is(':visible')) {
+      $nameEdit.children('input').focusTextToEnd();
+    }
+    return false;
+  },
+
+  bindEditDescriptionLink: function () {
+    $(document).on(
+      'click',
+      '.js_edit-project-description, .js_cancel-project-description, .js_project-description',
+      function (e) {
+        return ACC.myprojects._toggleEditProjectDescription(e);
+      }
+    );
+
+    $(document).on('click', '.js_save-project-description', function (e) {
+      var $descriptionEdit = $(e.currentTarget).closest('.edit-state'),
+        $descriptionField = $descriptionEdit.find('textarea'),
+        $descriptionRead = $descriptionEdit.siblings('.show-state'),
+        $form = $(e.currentTarget).closest('form');
+
+      $.ajax({
+        url: $form.attr('action') + '/description',
+        method: 'POST',
+        data:
+          'description=' +
+          $descriptionField.val() +
+          '&code=' +
+          $form.data('code'),
+        success: function () {
+          $descriptionRead.children('span').html($descriptionField.val());
+        },
+        complete: function () {
+          window.location.reload();
+        },
+      });
+
+      return false;
+    });
+  },
+
+  _toggleEditProjectDescription: function (e) {
+    var $descriptionRead = $(e.currentTarget)
+        .closest('.col')
+        .children('.show-state'),
+      $descriptionEdit = $descriptionRead.siblings('.edit-state');
+    $descriptionEdit.toggle();
+    $descriptionRead.toggle();
+    if ($descriptionEdit.children('textarea').is(':visible')) {
+      $descriptionEdit.children('textarea').focusTextToEnd();
+    }
+    return false;
+  },
+
+  bindEditPrivateStateLink: function () {
+    $(document).on(
+      'click',
+      '.js_edit-project-private, .js_cancel-project-private, .js_project-private',
+      function (e) {
+        return ACC.myprojects._toggleEditProjectPrivateState(e);
+      }
+    );
+
+    $(document).on('click', '.js_save-project-private', function (e) {
+      var $privateStateEdit = $(e.currentTarget).closest('.edit-state'),
+        $privateStateField = $privateStateEdit.find('input[type=checkbox]'),
+        $form = $('#myProjectForm');
+
+      $.ajax({
+        url: $form.attr('action') + '/privateState',
+        method: 'POST',
+        data:
+          'privateState=' +
+          $privateStateField.is(':checked') +
+          '&code=' +
+          $form.data('code'),
+        complete: function () {
+          window.location.reload();
+        },
+      });
+
+      return false;
+    });
+  },
+
+  _toggleEditProjectPrivateState: function (e) {
+    var $privateStateRead = $(e.currentTarget)
+        .closest('.col')
+        .children('.show-state'),
+      $privateStateEdit = $privateStateRead.siblings('.edit-state');
+    $privateStateEdit.toggle();
+    $privateStateRead.toggle();
+    return false;
+  },
+
+  bindEditAddressLink: function () {
+    $(document).on(
+      'click',
+      '.js_edit-project-address, .js_cancel-project-address, .js_project-address',
+      function (e) {
+        return ACC.myprojects._toggleEditProjectAddress(e);
+      }
+    );
+
+    $(document).on('click', '.js_update-project-address', function (e) {
+      var $formDiv = $('#myProjectAddressForm'),
+        $addressForm = $formDiv.find('#addressForm'),
+        $selectedAddress = $formDiv.find('.selected-address .address.selected'),
+        selectedAddressId = $selectedAddress.data('id');
+
+      $.ajax({
+        url:
+          $addressForm.attr('action') +
+          '/' +
+          $formDiv.data('code') +
+          (selectedAddressId ? '?selectedAddressId=' + selectedAddressId : ''),
+        method: 'POST',
+        data: $addressForm.serialize(),
+        success: function (response) {
+          if (response && response.error) {
+            var $errorDiv = $('#mySubProjectFormDiv').find(
+              '.edit-project-address .show-error'
+            );
+            $errorDiv.find('.error-div').html(response.error);
+            $errorDiv.show();
+          }
+        },
+        complete: function (response) {
+          if (
+            response &&
+            response.responseJSON &&
+            response.responseJSON.error
+          ) {
+            return;
+          }
+          window.location.reload();
+        },
+      });
+
+      return false;
+    });
+  },
+
+  bindRemoveAddressLink: function () {
+    $(document).on('click', '.js_remove-project-address', function (e) {
+      e && e.preventDefault();
+
+      var $addresses = $('#myProjectAddressForm').find(
+          '.selected-address .address'
+        ),
+        $selId = $('#myProjectForm').find('input[name="selectedAddressId"]');
+
+      $addresses.removeClass('selected');
+      $selId.val('');
+      $('#myProjectAddressForm').find('.js_addressFormElement').show();
+    });
+  },
+
+  _toggleEditProjectAddress: function (e) {
+    var $addressRead = $(e.currentTarget)
+        .closest('.edit-project-address')
+        .children('.show-state'),
+      $addressEdit = $addressRead.siblings('.edit-state'),
+      $errorDiv = $('#mySubProjectFormDiv').find(
+        '.edit-project-address .show-error'
+      );
+    $addressEdit.toggle();
+    $addressRead.toggle();
+    $errorDiv.hide();
+    return false;
+  },
+
+  bindShowRemoveProjectConfirmation: function () {
+    $(document).on('click', '.js_remove-project-confirmation', function (e) {
+      e && e.preventDefault();
+      var popupTitle = $(this).data('title'), // attribute 'title' provides no value!?
+        code = $(this).data('code');
+
+      ACC.colorbox.open(popupTitle, {
+        inline: true,
+        width: 450,
+        height: false,
+        href: '#popup_confirm_project_removal_' + code,
+        onComplete: function () {
+          $(this).colorbox.resize();
+        },
+      });
+      return false;
+    });
+
+    $(document).on('click', '.js_remove-project', function (e) {
+      e && e.preventDefault();
+      var code = $(this).data('code');
+      $('#projectRemovalForm_' + code).submit();
+    });
+  },
+
+  _toggleActionState: function (state) {
+    var $actionLinks = $('#selected-project-entry-actions').find(
+      'a, span.disabled'
+    );
+    $actionLinks
+      .toggleClass('disabled', !state)
+      .children('span')
+      .toggleClass('disabled', !state);
+  },
+
+  bindSelectCheckbox: function () {
+    $(document).on('change', '.js_select-all-entries', function (e) {
+      var $this = $(this),
+        $allEntries = $this.closest('table').find('input[type=checkbox]'),
+        state = !!$this.is(':checked');
+
+      $allEntries.prop('checked', state);
+      ACC.myprojects._toggleActionState(state);
+
+      return true;
+    });
+
+    $(document).on('change', '.js_select-entry', function (e) {
+      var $table = $(this).closest('table'),
+        $selectAllCb = $table.find(
+          'input[type=checkbox].js_select-all-entries'
+        ),
+        $allEntries = $table.find('input[type=checkbox].js_select-entry'),
+        $checkedEntries = $allEntries.filter(':checked'),
+        state = $checkedEntries.length > 0;
+
+      ACC.myprojects._toggleActionState(state);
+      if ($allEntries.length > $checkedEntries.length) {
+        $selectAllCb.prop('checked', false);
+      } else {
+        $selectAllCb.prop('checked', true);
+      }
+      return true;
+    });
+  },
+
+  bindRemoveSelectedEntriesLink: function () {
+    $(document).on(
+      'click',
+      '.js_remove-selected-entries-confirmation',
+      function (e) {
+        e && e.preventDefault();
+        ACC.myprojects.toggleMyProjectsActionSpinner(true);
+
+        var popupTitle = $(this).data('title'), // attribute 'title' provides no value!?
+          code = $(this).data('code'),
+          $content = $('#popup_confirm_entries_removal_' + code),
+          $form = $('#project-entries-form'),
+          $selectedEntries = $form
+            .find('input[type=checkbox].js_select-entry')
+            .filter(':checked')
+            .closest('tr'),
+          $ul = $('<ul/>');
+
+        $selectedEntries.each(function (index) {
+          var $no = $('<span/>').append($(this).data('entry-no')),
+            $name = $('<span/>').append($(this).data('name')),
+            $li = $('<li/>').append($no).append($name);
+          $ul.append($li);
+        });
+        $content.find('.entry-list').html($ul);
+
+        ACC.colorbox.open(popupTitle, {
+          inline: true,
+          width: 560,
+          height: false,
+          href: '#popup_confirm_entries_removal_' + code,
+          onComplete: function () {
+            $(this).colorbox.resize();
+          },
+          onClosed: function () {
+            ACC.myprojects.toggleMyProjectsActionSpinner(false);
+          },
+        });
+        return false;
+      }
+    );
+
+    $(document).on('click', '.js_remove-selected-entries', function (e) {
+      e && e.preventDefault();
+      var $form = $('#project-entries-form'),
+        url = $(this).attr('href');
+
+      $.ajax({
+        url: url,
+        method: 'POST',
+        data: $form.serialize(),
+        complete: function () {
+          ACC.myprojects.toggleMyProjectsActionSpinner(false);
+          window.location.href = $form.attr('action');
+        },
+      });
+
+      return false;
+    });
+  },
+
+  bindRevalidateSelectedEntriesLink: function () {
+    $(document).on('click', '.js_revalidate-selected-entries', function (e) {
+      e && e.preventDefault();
+      ACC.myprojects.toggleMyProjectsActionSpinner(true);
+
+      var $form = $('#project-entries-form'),
+        url = $(this).attr('href');
+
+      $.ajax({
+        url: url,
+        method: 'POST',
+        data: $form.serialize(),
+        complete: function () {
+          ACC.myprojects.toggleMyProjectsActionSpinner(false);
+          window.location.href = $form.attr('action');
+        },
+      });
+
+      return false;
+    });
+  },
+
+  bindAddSelectedEntriesToCartLink: function () {
+    $(document).on(
+      'click',
+      '.js_add-selected-entries-to-cart, .js_add-selected-entries-to-quote',
+      function (e) {
+        e && e.preventDefault();
+        ACC.myprojects.toggleMyProjectsActionSpinner(true);
+
+        var $form = $('#project-entries-form'),
+          url = $(this).attr('href');
+        $form.attr('action', url).submit();
+        return false;
+      }
+    );
+  },
+
+  bindAddToComparisonListLink: function () {
+    $(document).on('click', '.js_add-my-projects-to-comparison', function (e) {
+      e && e.preventDefault();
+      ACC.myprojects.toggleMyProjectsActionSpinner(true);
+      var data = {};
+
+      if ($(this).closest('#selected-project-entry-actions').length) {
+        // detailView
+        var $form = $('#project-entries-form'),
+          formData = new FormData($form[0]),
+          formDataObj = Object.fromEntries(formData),
+          selEntryNumbers = formData.getAll('entryNumbers[]'),
+          productInfos = [];
+
+        selEntryNumbers.forEach(function (entryNumber) {
+          productInfos.push({
+            productCode: formDataObj['productCode_' + entryNumber],
+            id: formDataObj['configId_' + entryNumber] || '',
+          });
+        });
+        data['productInfos'] = productInfos;
+      } else {
+        // list view
+        data['projectId'] = $(this).closest('.actions').data('projectid');
+      }
+
+      ACC.productcomparison.addToComparisonList(data, $(this), function () {
+        ACC.myprojects.toggleMyProjectsActionSpinner(false);
+      });
+      return false;
+    });
+  },
+
+  toggleMyProjectsActionSpinner: function (state) {
+    var $actionDiv = $('#selected-project-entry-actions'),
+      $spinner = $actionDiv.find('.spinner');
+
+    $spinner.toggle(state);
+    ACC.myprojects._toggleActionState(!state);
+  },
+
+  bindQuantityChangeEvent: function () {
+    $(document).on('keyup', '.js_entry-quantity', function (e) {
+      var $div = $(this).closest('.editQuantity'),
+        $input = $div.children('input');
+
+      if (e.keyCode === 27) {
+        $input.val($input.data('current'));
+      }
+
+      if ($input.val() == $input.data('current')) {
+        $div.removeClass('dirty');
+      } else {
+        $div.addClass('dirty');
+      }
+    });
+
+    $(document).on('blur, change', '.js_entry-quantity', function (e) {
+      e && e.preventDefault();
+      var $this = $(this),
+        $form = $this.closest('form'),
+        $csrf = $($form.children('input[type=hidden]')[0]),
+        entryNo = $this.data('entry-no'),
+        url = $form.attr('action') + '/updateQuantity/' + entryNo,
+        value = $this.val();
+
+      $.ajax({
+        url: url,
+        method: 'POST',
+        data:
+          'quantity=' + value + '&' + $csrf.attr('name') + '=' + $csrf.val(),
+        complete: function (response) {
+          if (
+            response &&
+            response.responseJSON &&
+            response.responseJSON.success === false
+          ) {
+            $this.closest('.editQuantity').addClass('error');
+          } else {
+            $this
+              .closest('.editQuantity')
+              .removeClass('dirty')
+              .removeClass('error');
+            $this.data('current', value);
+          }
+        },
+      });
+
+      return false;
+    });
+  },
+
+  bindSaveProjectLink: function () {
+    $(document).on('click', '.js_new-project', function () {
+      $('#collapseList').collapse('hide');
+      $('#collapseList').removeClass('show');
+      return false;
+    });
+
+    $(document).on('click', '.js_cancel-project', function () {
+      $('#collapseNew').collapse('hide');
+      $('#collapseList').collapse('show');
+      $('#collapseList').addClass('show');
+      return false;
+    });
+
+    $(document).on('click', '.js_save-project', function (e) {
+      e && e.preventDefault();
+      var $form = $('#myProjectForm'),
+        data = {},
+        cb = function () {
+          window.location.reload();
+        };
+
+      new FormData($form[0]).forEach(function (value, key) {
+        data[key] = value;
+      });
+
+      $.ajax({
+        url: $form.attr('action'),
+        method: 'POST',
+        data: $form.serialize(),
+        success: function (responseData) {
+          var code = responseData && responseData.code;
+          if (
+            code &&
+            (!data.selectedAddressId || data.selectedAddressId.length <= 0)
+          ) {
+            // submit address form
+            var $addressForm = $('#myProjectAddressForm #addressForm');
+            var addressData = $addressForm.serializeArray().reduce((formValue, value) => {
+              formValue[value.name] = value.value
+              return formValue
+            }, {});
+            if ($addressForm.length && !!addressData.countryIso) {
+              $.ajax({
+                url: $addressForm.attr('action') + '/' + code,
+                method: 'POST',
+                data: $addressForm.serialize(),
+                success: function () {
+                  cb && cb();
+                },
+              });
+            } else {
+              cb && cb();
+            }
+          } else {
+            cb && cb();
+          }
+        },
+      });
+
+      return false;
+    });
+
+    $(document).on('submit', '#myProjectsAddressBookForm', function (e) {
+      var data = {};
+      new FormData(e.target).forEach(function (value, key) {
+        data[key] = value;
+      });
+
+      var $addresses = $('#myProjectAddressForm').find(
+        '.selected-address .address'
+      );
+      $addresses.removeClass('selected');
+      $addresses
+        .filter('[data-id=' + data.selectedAddressCode + ']')
+        .addClass('selected');
+      $('#myProjectForm')
+        .find('input[name="selectedAddressId"]')
+        .val(data.selectedAddressCode);
+      $('#myProjectAddressForm').find('.js_addressFormElement').hide();
+
+      ACC.colorbox.close();
+      return false;
+    });
+  },
+
+  bindImportProjectCSVActions: function () {
+    $('#chooseProjectFileButton').on('click', function (event) {
+      ACC.csvimport.clearGlobalAlerts();
+    });
+
+    $('#importProjectButton').on('click', function (event) {
+      event.preventDefault();
+      ACC.csvimport.clearGlobalAlerts();
+
+      if (!($('.js-file-upload__input').val().trim().length > 0)) {
+        ACC.csvimport.displayGlobalAlert({
+          type: 'error',
+          messageId: 'import-csv-no-file-chosen-error-message',
+        });
+        return;
+      }
+
+      var selectedFile = document.getElementById('csvFile').files[0];
+      if (!ACC.csvimport.isSelectedFileValid(selectedFile)) {
+        return;
+      }
+
+      ACC.csvimport.displayGlobalAlert({
+        type: 'warning',
+        messageId: 'import-csv-upload-message',
+      });
+      ACC.csvimport.enableDisableActionButtons(false);
+
+      var $form = $('#importCSVSavedCartForm');
+      $form.submit();
+    });
+  },
+
+  checkDescriptionHeightForToggle: function () {
+    $('.desc').each(function () {
+      if ($(this).height() > 60) {
+        ACC.myprojects.toggleText(this);
+      }
+    });
+  },
+
+  bindToggleDescription: function () {
+    $('.btn-toggle').on('click', function () {
+      ACC.myprojects.toggleText(this);
+    });
+  },
+
+  toggleText: function (textBtn) {
+    var $textHolder = $(textBtn).closest('.desc').find('.desc-toggle');
+
+    $textHolder.toggleClass('text-truncate');
+
+    if ($textHolder.hasClass('text-truncate')) {
+      $(textBtn).find('.btn-toggle-more').show();
+      $(textBtn).find('.btn-toggle-less').hide();
+    } else {
+      $(textBtn).find('.btn-toggle-more').hide();
+      $(textBtn).find('.btn-toggle-less').show();
+    }
+  },
+
+  bindCopyButtons: function () {
+    document.querySelectorAll('a.copy-info').forEach((button) => {
+      const entryNumber = button.getAttribute('data-entry-no');
+      const value = document.querySelector(
+        `tr[data-entry-no="${entryNumber}"] data`
+      ).value;
+
+      button.addEventListener('click', () => {
+        navigator.clipboard.writeText(value);
+      });
+    });
+  },
+
+  bindEditDebitorNumber: function () {
+    $(document).on(
+      'click',
+      '.js_edit-project-debitor, .js_cancel-project-debitor, .js_project-debitor',
+      function (e) {
+        return ACC.myprojects._toggleEditDebitorNumber(e);
+      }
+    );
+
+    $(document).on('click', '.js_save-project-debitor', function (e) {
+      const $debitorEdit = $(e.currentTarget).closest('.edit-state'),
+        $debitorField = $debitorEdit.find('input'),
+        $debitorRead = $debitorEdit.siblings('.show-state'),
+        $form = $('#myProjectForm');
+
+      $.ajax({
+        url: $form.attr('action') + '/debitor',
+        method: 'POST',
+        data: 'debitor=' + $debitorField.val() + '&code=' + $form.data('code'),
+        success: function () {
+          $debitorRead.children('span').html($debitorField.val());
+          $('.js-project-entry-status').text($('#data-not-valid-text').text());
+        },
+        complete: function () {
+          window.location.reload();
+        },
+      });
+
+      return false;
+    });
+  },
+
+  _toggleEditDebitorNumber: function (e) {
+    const $debitorRead = $(e.currentTarget)
+        .closest('.col')
+        .children('.show-state'),
+      $debitorEdit = $debitorRead.siblings('.edit-state');
+    $debitorEdit.toggle();
+    $debitorRead.toggle();
+    if ($debitorEdit.children('input').is(':visible')) {
+      $debitorEdit.children('input').focusTextToEnd();
+    }
+    return false;
+  },
+};

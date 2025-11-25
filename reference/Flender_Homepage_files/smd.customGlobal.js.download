@@ -1,0 +1,336 @@
+ACC.customGlobal = {
+
+    _autoload: [
+        "bindLoadEvent",
+        "disableButton",
+        "owlCarouselSubNavInit",
+        "owlCarouselSubNav",
+        "owlCarouselCarouselComponentInit",
+        "owlCarouselCarouselComponent",
+        "initTransparentHeader",
+        "initScrollTopButton",
+        "initScrollDownButton",
+        "bindToggleRightSideNavigation",
+        "bindToggleFlyOutNavigation",
+        "setHeaderHeight",
+        "mainNavigationActiveDisplayBreadcrumb",
+        "addDownloadAttributeToPDFLink",
+        "responsiveIFrame"
+    ],
+
+    bindLoadEvent: function () {
+        var showSearchBar = function () {
+            var searchBar = $(".site-search");
+
+            searchBar.addClass("active");
+        };
+
+        var hideSearchBar = function () {
+            var searchBar = $(".site-search"),
+                searchInput = $(".js-site-search-input");
+
+            if (!searchInput.val()) searchBar.removeClass("active");
+        };
+
+        $(document).on("focus", ".js-site-search-input", showSearchBar);
+        $(document).on("blur", ".js-site-search-input", hideSearchBar);
+    },
+
+    disableButton: function () {
+        $(document).on("click", '.js-disable-button', function () {
+            if ($(this).hasClass("js-button-submit")) {
+                $(this).closest("form").submit();
+            }
+            $(this).attr('disabled', true);
+        });
+    },
+
+    owlCarouselSubNavInit: function () {
+        var $owl = $(".owl-carousel--sub-nav")
+        $owl.on({
+            'initialized.owl.carousel': function () {
+                $(".owl-carousel--sub-nav").show();
+                $(".owl-stage-outer").addClass("owl-stage-outer--loaded");
+                window.dispatchEvent(new Event('resize'));
+            }
+        });
+        $owl.on({
+            'resized.owl.carousel': function () {
+                window.dispatchEvent(new Event('resize'));
+            }
+        });
+        $owl.on({
+            'translated.owl.carousel': function () {
+                window.dispatchEvent(new Event('resize'));
+            }
+        });
+    },
+
+    owlCarouselSubNav: function () {
+        $(".owl-carousel--sub-nav").owlCarousel({
+            dots: false,
+            nav: true,
+            navText: ["<img src='" + ACC.config.cdnStaticUrl + "/_ui/responsive/theme-flender/img/IconArrowLeft.svg'>", "<img src='" + ACC.config.cdnStaticUrl + "/_ui/responsive/theme-flender/img/IconArrowRight.svg'>"],
+            responsiveClass: true,
+            responsive: {
+                0: {
+                    items: 6
+                },
+                1000: {
+                    items: 8
+                },
+                1400: {
+                    items: 9
+                }
+            }
+        });
+    },
+
+    owlCarouselCarouselComponentInit: function () {
+        $(".carousel-container.active .owl-carousel--carousel-component").on({
+            'initialized.owl.carousel': function () {
+                $(".carousel-container.active  .owl-carousel--carousel-component").show();
+            }
+        });
+    },
+
+    owlCarouselCarouselComponent: function () {
+        $(".owl-carousel--carousel-component").owlCarousel({
+            dots: true,
+            nav: true,
+            margin: 30,
+            navText: ["<img src='" + ACC.config.cdnStaticUrl + "/_ui/responsive/theme-flender/img/IconBlueArrowLeft.svg'>", "<img src='" + ACC.config.cdnStaticUrl + "/_ui/responsive/theme-flender/img/IconBlueArrowRight.svg'>"],
+            responsiveClass: true,
+            responsive: {
+                0: {
+                    items: 1
+                },
+                500: {
+                    items: 2
+                },
+                900: {
+                    items: 3
+                },
+                1000: {
+                    items: 4
+                },
+                1200: {
+                    items: 5
+                }
+            }
+        });
+    },
+
+    initTransparentHeader: function () {
+        if ($(".PAGE_STYLE__TRANSPARENT").length > 0) {
+            $(function () {
+                if ($(this).scrollTop() > 0) {
+                    $(".fl-header__main--wrapper").addClass("fl-header__main--wrapper-bgcolor");
+                }
+
+                $(window).scroll(function () {
+                    if ($(this).scrollTop() === 0) {
+                        $(".fl-header__main--wrapper").removeClass("fl-header__main--wrapper-bgcolor");
+                    } else {
+                        $(".fl-header__main--wrapper").addClass("fl-header__main--wrapper-bgcolor");
+                    }
+                });
+            });
+        }
+    },
+
+    initScrollTopButton: function () {
+        var back_to_top_button = ['<a href="#top" class="back-to-top"><span class="glyphicon glyphicon-menu-up"></span></a>'].join("");
+        $("body").append(back_to_top_button)
+
+        $(".back-to-top").hide();
+
+        $(function () {
+            $(window).scroll(function () {
+                if ($(this).scrollTop() > 100) {
+                    $('.back-to-top').fadeIn();
+                } else {
+                    $('.back-to-top').fadeOut();
+                }
+            });
+
+            $('.back-to-top').click(function () {
+                $('body,html').animate({
+                    scrollTop: 0
+                }, 800);
+                return false;
+            });
+        });
+    },
+
+    initScrollDownButton: function () {
+        if (document.body.scrollTop == 0) {
+            $('.scroll-down').fadeIn();
+        }
+
+        $(function () {
+            $(window).scroll(function () {
+                if ($(this).scrollTop() == 0) {
+                    $('.scroll-down').fadeIn();
+                } else {
+                    $('.scroll-down').fadeOut();
+                }
+            });
+
+            $('.scroll-down').click(function () {
+                $('body,html').animate({
+                    scrollTop: $(window).height()
+                }, 800);
+                return false;
+            });
+        });
+    },
+
+    bindToggleRightSideNavigation: function () {
+        $(document).on("click", ".js-toggle-right-side-navigation", function (e) {
+            var rightSideNavigationTarget = $(e.target).data("navigation");
+            ACC.global.toggleClassState($("html"), "fl-right-side-offcanvas");
+            ACC.global.toggleClassState($("html"), rightSideNavigationTarget);
+            e.stopPropagation();
+            e.preventDefault();
+        });
+
+        $('.fl-right-side-navigation--wrapper').click(function (e) {
+            if (!$(e.target).hasClass("glyphicon-remove")) {
+                e.stopPropagation();
+            }
+        });
+
+        $(document).click(function () {
+            if ($("html").hasClass("fl-right-side-offcanvas")) {
+                var htmlClassNames = $("html").attr('class');
+                ACC.global.toggleClassState($("html"), htmlClassNames);
+            }
+        });
+    },
+
+    bindToggleFlyOutNavigation: function () {
+        // flyout closed
+        $(document).on("click", ".js-toggle-flyout-navigation", function (e) {
+            if (!$("html").hasClass("fl-flyout-offcanvas")) {
+                var flyoutNavigationTarget = $(e.target).closest(".nav__link");
+                var flyoutNavigationTargetData = $(flyoutNavigationTarget).data("navigation");
+                $("#" + flyoutNavigationTargetData).css("opacity", 1).css("transform", "translate(0, 0)");
+                ACC.global.toggleClassState($("html"), "fl-flyout-offcanvas");
+                ACC.global.toggleClassState($(flyoutNavigationTarget), "js-flyout--open");
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        });
+
+        // flyout opened
+        $(document).click(function (e) {
+            if ($("html").hasClass("fl-flyout-offcanvas")) {
+                // click mainnav -toggle flyout
+                var menuItem = $(e.target).closest(".js-toggle-flyout-navigation");
+                var flyoutNavigationTarget = $(e.target).closest(".nav__link");
+                var flyoutNavigationTargetData = $(flyoutNavigationTarget).data("navigation");
+
+                // click outside -close flyout
+                if (!$(e.target).closest(".fl-header__flyout").length && !$(e.target).closest(".js-toggle-flyout-navigation").length) {
+                    if (e.target.tagName.toLowerCase() === 'a') {
+                        window.location.href = e.target.href;
+                        return;
+                    }
+                    $(".fl-header__flyout--wrapper").css("transform", "translate(0, -100%)").css("opacity", 0);
+                    ACC.global.toggleClassState($("html"), "fl-flyout-offcanvas");
+
+                    $('.js-flyout--open').each(function () {
+                        $(this).removeClass("js-flyout--open");
+                    });
+                    ACC.global.toggleClassState($(flyoutNavigationTarget), "js-flyout--open");
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
+
+                // click mainnav -toggle flyout
+                if ($(menuItem).length && !$(menuItem).hasClass("js-flyout--open")) {
+                    $('.js-flyout--open').each(function () {
+                        $(this).removeClass("js-flyout--open");
+                    });
+                    ACC.global.toggleClassState($(flyoutNavigationTarget), "js-flyout--open");
+                    $(".fl-header__flyout--wrapper").css("transform", "translate(0, -100%)").css("opacity", 0);
+                    $("#" + flyoutNavigationTargetData).css("opacity", 1).css("transform", "translate(0, 0)");
+                    e.stopPropagation();
+                    e.preventDefault();
+                } else if ($(menuItem).length) {
+                    $(".fl-header__flyout--wrapper").css("transform", "translate(0, -100%)").css("opacity", 0);
+                    ACC.global.toggleClassState($("html"), "fl-flyout-offcanvas");
+                    ACC.global.toggleClassState($(flyoutNavigationTarget), "js-flyout--open");
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
+            }
+        });
+    },
+
+    setHeaderHeight: function () {
+        //product page
+        var height = $(".product-details-header--wrapper").outerHeight() + 50;
+        $(".fl-main").css("paddingTop", height + 'px');
+    },
+
+    mainNavigationActiveDisplayBreadcrumb: function () {
+        $(".js-breadcrumb-element").each(function () {
+            var hrefBreadcrumbElement = $(this).attr('href');
+
+            if (hrefBreadcrumbElement !== undefined) {
+                $(".js-navigation-element > a").each(function () {
+                    var hrefNavigationElement = $(this).attr('href');
+
+                    if (hrefNavigationElement !== undefined && hrefNavigationElement === hrefBreadcrumbElement) {
+                        console.log(hrefNavigationElement + " === " + hrefBreadcrumbElement);
+                        $(this).addClass("active");
+                    }
+                });
+            }
+        });
+    },
+
+    // Temporary Hotfix Chrome PDF Viewer SIEMDSAP-4688
+    addDownloadAttributeToPDFLink: function () {
+        $("a").each(function () {
+            var href = $(this).attr('href');
+
+            if (href !== undefined && href.toLowerCase().indexOf(".pdf") >= 0) {
+                $(this).attr('download', '');
+            }
+        });
+    },
+
+    responsiveIFrame: function () {
+        if ($('.responsive-iframe').length) {
+            var iFrames = iFrameResize(
+                {
+                    log: false,
+                    inPageLinks: true,
+                    heightCalculationMethod: 'body'
+                },
+                '.responsive-iframe'
+            );
+
+            var headerHeight = document.querySelector(".fl-header__main--wrapper").offsetHeight;
+
+            window.addEventListener('scroll', function () {
+                iFrames.forEach(function (iFrame) {
+                    var message = {
+                        type: "scroll"
+                    };
+
+                    message.viewport = {
+                        width: window.innerWidth,
+                        height: window.innerHeight,
+                        headerHeight: headerHeight
+                    };
+                    message.iframe = iFrame.getBoundingClientRect();
+                    iFrame.iFrameResizer.sendMessage(message);
+                });
+            });
+        }
+    }
+};

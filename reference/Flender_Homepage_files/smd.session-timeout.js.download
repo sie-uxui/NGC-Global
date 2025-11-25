@@ -1,0 +1,58 @@
+ACC.sessionTimeout = {
+
+    _autoload: [
+		"initSessionTimeout"
+	],
+
+    idleTime : 0,
+    counter : 60,
+    countdown : '',
+
+    initSessionTimeout: function () {
+		if($(".webquote-landingpage-component").length) {
+            var idleInterval = setInterval(function() {ACC.sessionTimeout.timerIncrement();}, 60000);
+
+            $(document).on("click",'#cboxLoadedContent .js-session-timeout--refresh', function (){
+                $(this).prop('disabled', true);
+                location.reload();
+            });
+		}
+	},
+
+    timerIncrement: function () {
+        ACC.sessionTimeout.idleTime = ACC.sessionTimeout.idleTime + 1;
+
+        if (ACC.sessionTimeout.idleTime === 29)
+        {
+            var title = $('.session-timeout-title-holder').html();
+
+            ACC.colorbox.open(title,{
+                html: $('.session-timeout-content-holder').html(),
+                width: 500,
+                maxHeight: '90%',
+                onComplete: function(){
+                    ACC.colorbox.resize();
+                }
+            });
+            ACC.sessionTimeout.startTimer();
+        }
+    },
+
+    startTimer: function () {
+        countdown = setInterval(ACC.sessionTimeout.countDownClock, 1000);
+    },
+
+    countDownClock: function () {
+        ACC.sessionTimeout.counter = ACC.sessionTimeout.counter - 1;
+
+        if (ACC.sessionTimeout.counter < 10) {
+            $('#cboxLoadedContent .js-timeout-counter').text("0" + ACC.sessionTimeout.counter);
+        }
+        else {
+            $('#cboxLoadedContent .js-timeout-counter').text(ACC.sessionTimeout.counter);
+        }
+        if (ACC.sessionTimeout.counter <= 0) {
+            $('#cboxLoadedContent .js-timeout-counter').text("00")
+        }
+    }
+};

@@ -1,0 +1,37 @@
+ACC.sessionWebQuote = {
+    _autoload: [
+        ['init', true]
+    ],
+
+    init: async () => {
+        $("#sidebar-logout-button").click(event => {
+            Promise.all([fetch(`${ACC.config.encodedContextPath}/session-webquote`), fetch(`${ACC.config.encodedContextPath}/session-cart`)])
+                .then(async responses => {
+                const [hasSessionWebQuote, hasSessionCart] = (await Promise.all(responses.map(r => r.json()))).map(body => body === 'true');
+
+                if(!hasSessionWebQuote && !hasSessionCart) {
+                    window.location.href = event.currentTarget.href;
+                    return;
+                }
+
+                const contentHolder = hasSessionCart ? '.logout-confirmation-content-holder-cart'
+                    : '.logout-confirmation-content-holder';
+
+                ACC.colorbox.open($('.logout-confirmation-title-holder').html(),{
+                    html: $(contentHolder).html(),
+                    width: 500,
+                    maxHeight: '90%',
+                    onComplete: () => {
+                        ACC.colorbox.resize();
+                    }
+                });
+
+                $(".logout-confirmation-button").click(event => {
+                    window.location.href = event.currentTarget.dataset.href;
+                });
+            });
+
+            event.preventDefault();
+        });
+    }
+}

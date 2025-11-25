@@ -1,0 +1,486 @@
+
+ACC.mediasearchaddon = {
+	logging : true,
+	config : {},
+	navigation : {},
+	data : {},
+	pagination: {},
+	templateMediaType : {},
+	countTemplate : function() {},
+
+	loadConfig : function() {
+		console.log("LOAD CONF ");
+		var configElement = $('#mc-config');
+		if (configElement.length > 0) {
+			ACC.mediasearchaddon.config['templateName'] = configElement.data('templateName');
+			ACC.mediasearchaddon.config['typeReplacement'] = configElement.data('typeReplacement');
+			ACC.mediasearchaddon.config['urlNavigation'] = configElement.data('urlNavigation');
+			ACC.mediasearchaddon.config['urlSearch'] = configElement.data('urlSearch');
+			ACC.mediasearchaddon.config['urlTypeTemplate'] = configElement.data('urlTypeTemplate');
+			ACC.mediasearchaddon.log(ACC.mediasearchaddon.config);
+			return true;
+		}else {
+			ACC.mediasearchaddon.log('no config found, do nothing');
+			return false;
+		}
+	},
+
+	load : function(callbackFunction) {
+		$.ajax(ACC.mediasearchaddon.config['urlNavigation']).done(function(navigationData) {
+			ACC.mediasearchaddon.navigation = navigationData;
+			ACC.mediasearchaddon.log(ACC.mediasearchaddon.navigation);
+
+			$('.mc-search').find('select, input[type="text"], button[type="submit"]').unbind();
+
+			ACC.mediasearchaddon.loadSelect(ACC.mediasearchaddon.navigation.categories, '.mc-search .productCategoryCode');
+			ACC.mediasearchaddon.loadSelect(ACC.mediasearchaddon.navigation.types, '.mc-search .type');
+			ACC.mediasearchaddon.loadSubSelect(ACC.mediasearchaddon.navigation.types, '.mc-search .type', '.mc-search .subType');
+			ACC.mediasearchaddon.loadSubSelect(ACC.mediasearchaddon.navigation.categories, '.mc-search .productCategoryCode', '.mc-search .subProductCategoryCode');
+
+			ACC.mediasearchaddon.loadTemplateEngine();
+
+			typeof callbackFunction === 'function' && callbackFunction();
+		});
+	},
+
+	loadTemplateEngine : function() {
+		Handlebars.registerHelper('date', function(format, dateString) {
+			return $.datepicker.formatDate(format, new Date(dateString));
+		});
+		Handlebars.registerHelper('numeralText', function(num, single, more) {
+			return (num <= 1) ? single : more;
+		});
+		ACC.mediasearchaddon.countTemplate = Handlebars.compile($('.mc-count-result').clone().removeClass('hidden').html());
+	},
+
+	bind : function() {
+		ACC.mediasearchaddon.bindSearch('.mc-search', function() {
+			ACC.mediasearchaddon.search();
+		});
+		ACC.mediasearchaddon.bindReset('.mc-search');
+		ACC.mediasearchaddon.bindVideo();
+		ACC.mediasearchaddon.bindPopover('.mc-result');
+	},
+
+	clickDownload: function(el) {
+		var $this = $(el),
+			$checkboxes = $this.closest("form").find(".checkboxes"),
+			$checked = $checkboxes.find("input:checked");
+
+		ACC.mediasearchaddon.hideCheckboxes();
+
+		var locales = [];
+		$checked.each(function() {
+			locales.push(this.value);
+		});
+
+		var href = $this.data("href") + ACC.mediasearchaddon._hrefParameters($this.data("href"), locales);
+		$this.attr("href", href.indexOf('/') === 0 ? href : "/" + href);
+	},
+
+	_hrefParameters: function(url, locales) {
+		var delimiter = url.indexOf('?') >= 0 ? '&' : '?';
+		return (locales.length ? delimiter + "ls=" + locales.join("_") : "")
+	},
+
+	hideCheckboxes : function() {
+		var $allCheckboxes = $(document).find(".checkboxes");
+		$allCheckboxes.hide();
+	},
+
+	showCheckboxes : function(el) {
+		var $this = $(el),
+			$checkboxes = $this.closest(".multiselect").find(".checkboxes");
+
+		if ($checkboxes.is(":visible")) {
+			ACC.mediasearchaddon.hideCheckboxes();
+		} else {
+            ACC.mediasearchaddon.hideCheckboxes();
+			$checkboxes.show();
+		}
+	},
+
+	initQueryParameter : function(parentSelector) {
+		ACC.mediasearchaddon.log('init query');
+		$.each($(parentSelector).find('select, input[type="text"]'), function(i, e) {
+			ACC.mediasearchaddon.log(e);
+			var element = $(e);
+			var name = element.attr('name');
+			var query = ACC.mediasearchaddon.getParameterByName(name);
+			if( name === 'sort' && query.length === 0 ){
+				query = 'prio-and-name';
+			}
+			ACC.mediasearchaddon.log(name + ':' + query);
+			if (element.find("option[value='"+query+"']").length !== 0) {
+				element.val(query);
+			} else if (name === 'search' && query.length > 0) {
+				element.val(query);
+			} else {
+				element.val('');
+			}
+			element.trigger('change');
+		});
+	},
+
+	search : function() {
+		var url = ACC.mediasearchaddon.config['urlSearch'];
+		var form = ACC.mediasearchaddon.getSearchForm('.mc-search', true);
+		ACC.mediasearchaddon.log(url);
+		ACC.mediasearchaddon.log(form);
+		$.ajax({
+			url : url,
+			data : form
+		}).done(function(data) {
+			if (data && data.results) {
+				ACC.mediasearchaddon.data = data.results;
+			}
+			if (data && data.pagination) {
+				ACC.mediasearchaddon.pagination = data.pagination;
+			}
+			ACC.mediasearchaddon.print();
+		});
+	},
+
+	addStyleToDom : function(style) {
+		if (style) {
+			var configElement = $('#mc-config');
+			configElement.append('<style>' + style + '</style>');
+			ACC.mediasearchaddon.log('add style ' + style);
+		}
+	},
+
+	loadMediaTypeTemplate : function(deferred, key, urlKey) {
+		var placeholder = ACC.mediasearchaddon.config['typeReplacement'];
+		var templateName = ACC.mediasearchaddon.config['templateName'];
+		var url = ACC.mediasearchaddon.config[urlKey].replace(placeholder, key);
+		url += '?name=' + templateName;
+
+		$.ajax(url).done(function(data) {
+			ACC.mediasearchaddon.log('data loaded ' + key);
+			deferred.resolve(data);
+		});
+	},
+
+	getMediaTypeTemplate : function(deferred, typeKey) {
+		var templates = ACC.mediasearchaddon.templateMediaType;
+		if (templates[typeKey] != undefined && templates[typeKey] != null) {
+			deferred.resolve(templates[typeKey]);
+		} else {
+			var d = $.Deferred();
+			d.done(function(template) {
+				if (template.length > 0) {
+					templates[typeKey] = template[0];
+					templates[typeKey]['compiled'] = Handlebars.compile(templates[typeKey].value);
+					ACC.mediasearchaddon.addStyleToDom(templates[typeKey].style);
+				}else {
+					templates[typeKey] = {};
+				}
+				deferred.resolve(templates[typeKey]);
+			});
+			ACC.mediasearchaddon.loadMediaTypeTemplate(d, typeKey, 'urlTypeTemplate');
+		}
+	},
+
+	getHeadline : function(level, key) {
+		var result = '';
+		$.each(ACC.mediasearchaddon.navigation['types'], function(i, e) {
+			if (e.key === key) {
+				result = e.value;
+			}
+		});
+		return result;
+	},
+
+	print : function() {
+		ACC.mediasearchaddon.log(ACC.mediasearchaddon.data);
+		var box = $('.mc-result');
+		box.html('');
+
+		if (ACC.mediasearchaddon.data.length == 0) {
+			box.append($('.mc-empty-result').clone().removeClass('hidden'));
+			return;
+		}
+
+		box.append('<div class="mc-count-result">' + ACC.mediasearchaddon.countTemplate(ACC.mediasearchaddon.pagination) + '</div>');
+
+		var collection = ACC.mediasearchaddon.getDataCollection(box);
+		ACC.mediasearchaddon.log('collection');
+		ACC.mediasearchaddon.log(collection);
+
+		ACC.mediasearchaddon.printDataCollection(box, collection);
+	},
+
+	printDataCollection : function(box, collect) {
+		// call templates
+		$.each(collect, function(i, typeGroupElement) {
+			var key = typeGroupElement.key;
+
+			var d2 = $.Deferred();
+			d2.done(function(template) {
+				ACC.mediasearchaddon.log(template);
+				$.each(typeGroupElement.sections, function(i, section) {
+					if (template.styleClassesContainer) {
+						section.box.addClass(template.styleClassesContainer);
+					}
+					$.each(section.elements, function(i, e) {
+						if (template['compiled'] != undefined) {
+							var newMedia = $.extend({}, e.value, {'properties':template['properties']});
+							e.block.append(template['compiled'](newMedia));
+							//e.block.trigger('mcElementFinished');
+						}
+					});
+				});
+			});
+			ACC.mediasearchaddon.getMediaTypeTemplate(d2, key);
+		});
+	},
+
+	getDataCollection : function(box) {
+		var typeBox = $('');
+		// collect/group by key in Object collect
+		// append headlines and placeholder to DOM
+		var collect = [];
+		var latestKey = ''; // detect change new type
+		var latestSectionKey = ''; // detect change new section
+		var lastSectionArray = {};
+		var lastElementArray = []; // latest collection array inside collect, changed if latestKey changed
+		$.each(ACC.mediasearchaddon.data, function(i, element) {
+			//for (i=0; i<20; i++) { // TODO remove
+			var child = $('<div class="mc-element"></div>');
+			var typeChanged = latestKey != element.typeKey;
+			var sectionChanged = typeChanged || latestSectionKey != element.sectionKey;
+
+			if (typeChanged || sectionChanged) { // media type change
+				lastElementArray = [];
+
+				// add old and create new box
+				box.append(typeBox);
+				typeBox = $('<div class="mc-type-box"></div>');
+
+				if (typeChanged) {
+					lastSectionArray = [];
+					collect.push({key:element.typeKey, sections:lastSectionArray});
+					box.append('<div class="mc-type-headline row mc-type-' + element.typeKey + '"><div class="headline">' + ACC.mediasearchaddon.getHeadline(0, element.typeKey)  + '</div></div>');
+					latestKey = element.typeKey;
+				}
+				if (sectionChanged) {
+					if (element.sectionName) {
+						box.append('<div class="mc-section-headline row mc-section-' + element.sectionKey + '"><div class="headline"><span class="glyphicon glyphicon-chevron-right"></span>' + element.sectionName + '</div></div>');
+					}
+					latestSectionKey = element.sectionKey;
+				}
+				lastSectionArray.push({elements:lastElementArray, box:typeBox});
+			}
+			lastElementArray.push({key:element.typeKey, value:element, block:child});
+			typeBox.append(child);
+			//}
+		});
+		box.append(typeBox); // add last box
+		return collect;
+	},
+
+	getSearchForm : function(parentSelector, replace) {
+		var form = {};
+		$.each($(parentSelector).find('select:not(.invisible), input[type="text"]:not(.invisible)'), function(i, e) {
+			var element = $(e);
+			var value = element.val();
+			if (value) {
+				form[element.attr('name')] = value;
+			}
+		});
+
+		if (replace) {
+			//replace productCategoryCode with subProductCategoryCode
+			ACC.mediasearchaddon.replaceInObject(form, 'product', 'pgroup');
+		}
+
+		return form;
+	},
+
+	replaceInObject : function (obj, sourceSelector, targetSelector) {
+		var source = obj[sourceSelector];
+		if (source != undefined && source != null && source != '') {
+			obj[targetSelector] = source;
+			obj[sourceSelector] = undefined;
+			ACC.mediasearchaddon.log('Replace ' + targetSelector + ' with ' + sourceSelector);
+		}
+	},
+
+	bindReset : function(parentSelector) {
+		$(parentSelector).find('button[type="reset"]').on('click', function(event) {
+			event.preventDefault();
+			ACC.mediasearchaddon.log('reset');
+			var form = $(this).parents('form');
+			form[0].reset();
+			form.find('.mc-subselect').addClass('invisible');
+			form.find('button[type="submit"]').trigger('click');
+		});
+	},
+
+	bindSearch : function(parentSelector, searchFunction) {
+		$(parentSelector).find('select, input[type="text"]').on('change', function(event) {
+			event.preventDefault();
+			ACC.mediasearchaddon.setHistory(parentSelector);
+			searchFunction();
+		});
+		$(parentSelector).find('button[type="submit"]').on('click', function(event) {
+			event.preventDefault();
+			ACC.mediasearchaddon.setHistory(parentSelector);
+			searchFunction();
+		});
+	},
+
+	bindPopover : function(parentSelector) {
+		$(parentSelector).on('click', '*[data-toggle="mc-popover"]', function (e) {
+			e.preventDefault();
+			$('[data-toggle="mc-popover"]').not(this).popover('destroy').removeClass('mc-popover-shown');
+			// cannot popover all elements, needs 10sec for finish
+			// so popover elements on "click"
+			if (!$(this).hasClass('mc-popover-shown')) {
+				$(this).popover('show');
+			}
+			$(this).toggleClass('mc-popover-shown');
+		});
+	},
+
+	bindVideo : function() {
+		$(document).on('click', '.js-mc-video', function(e) {
+			var link = $(this);
+			e.preventDefault();
+
+			var vw = link.data('width'),
+				vh = link.data('height');
+			var title = link.data('title');
+			var src = link.attr('href');
+			var sh = $(window).height(),
+				sw = $(window).width();
+
+			var w, h;
+			if (sw/sh < vw/vh) {
+				w = Math.min(sw, vw);
+				h = w / (vw/vh);
+			}else {
+				h = Math.min(sh, vh);
+				w = h * (vw/vh);
+			}
+
+			h += (sw < 640 ? 177 : 130), // add 130px for header
+				ACC.mediasearchaddon.log("H=" + h + ", W=" + w);
+
+			ACC.colorbox.open('<div class="mc-video-popup-title">' + title + '</div>', {
+				href: src,
+				iframe: true,
+				width: w,
+				height: h,
+				closeButton: true,
+				overlayClose: true,
+				className: 'mc-video-popup',
+				onComplete: function() {
+					// no resize
+					ACC.common.refreshScreenReaderBuffer();
+				},
+				onClosed: function() {
+					ACC.common.refreshScreenReaderBuffer();
+				}
+			});
+		});
+	},
+
+	setHistory : function(parentSelector) {
+		if (history && history.pushState) {
+			var formObject = ACC.mediasearchaddon.getSearchForm(parentSelector, false);
+			var query = $.param(formObject);
+			var url = '';
+			if (query) {
+				url = location.href.split(/[?#]/, 1)[0] + '?' + query;
+			}else {
+				url = location.href.split(/[?#]/, 1)[0];
+			}
+			ACC.mediasearchaddon.log('Push URL: ' + url);
+			history.pushState(formObject, '', url);
+		}
+	},
+
+	loadSubSelect : function(elementsParent, classSelectorParent, classSelector) {
+		ACC.mediasearchaddon.log('loadSubSelect ' + classSelector);
+		if (elementsParent) {
+			$(classSelectorParent).on('change', function() {
+				var parentVal = this.value;
+				if (parentVal == '') {
+					$(classSelector).addClass('invisible');
+				}else {
+					$.each(elementsParent, function(i, element) {
+						if (element.key === parentVal) {
+							if (element.children && element.children.length > 0) {
+								$(classSelector).removeClass('invisible');
+								ACC.mediasearchaddon.loadSelect(element.children, classSelector);
+							}else {
+								$(classSelector).addClass('invisible');
+							}
+						}
+					});
+				}
+			});
+		}
+	},
+
+	loadSelect : function(elements, classSelector) {
+		ACC.mediasearchaddon.log('loadSelect ' + classSelector);
+		if (elements) {
+			$(classSelector).find('option:not(.all)').remove();
+			var box = $(classSelector);
+			var subBox = box;
+			var lastGroup = '';
+			$.each(elements, function(i, element) {
+				if (element.group != null && element.group !== lastGroup) {
+					subBox = $('<optgroup>').attr('label', element.group);
+					box.append(subBox);
+					lastGroup = element.group;
+				}
+				subBox.append($('<option>').attr('value', element.key).html(element.value));
+			});
+		}
+	},
+
+	log : function(s) {
+		ACC.mediasearchaddon.logging && console && console.log && console.log(s);
+	},
+
+	getParameterByName : function(name) {
+		var regex = new RegExp('[\\?&]' + name.replace(/[\[]/, '\\\[').replace(/[\]]/, '\\\]') + '=([^&#]*)');
+		var found = regex.exec(window.location.search);
+		if (found == null) {
+			return '';
+		}
+		return decodeURIComponent(found[1].replace(/\+/g, ' '));
+	},
+
+	enableElements: function () {
+		$('.js-mc-enable').each(function () {
+			$(this).removeAttr("disabled");
+		});
+	}
+};
+
+$(function() {
+	with (ACC.mediasearchaddon) {
+		if (loadConfig()) {
+			load(function() {
+				enableElements();
+				initQueryParameter('.mc-search');
+				bind();
+				search();
+			});
+		} else if( $(".js-mc-video").length > 0 ) {
+			bindVideo();
+		}
+	}
+});
+
+$(document).click(function(e) {
+	var $target = $(e.target),
+		$checkboxes = $('.checkboxes');
+	if(!$target.closest('.checkboxes').length && !$target.closest('.selectBox').length && $checkboxes.is(":visible")) {
+		ACC.mediasearchaddon.hideCheckboxes();
+	}
+});

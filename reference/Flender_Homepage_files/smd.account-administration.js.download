@@ -1,0 +1,18 @@
+ACC.accountadministration = {
+
+    _autoload: [
+        "bindGroupChangeEvent"
+    ],
+
+    bindGroupChangeEvent: function () {
+        var $content = $(document).find('#customerAdministrationChangeGroup, .groups-list'),
+            changeGroup = function (e) {
+                var $link = $(this),
+                    $form = $link.closest(".card").find("form");
+                e && e.preventDefault();
+                $form.find("[name='setGroup']").val($link.data("add"));
+                $form.submit();
+            };
+        $content.on("click", ".js-change-group", changeGroup);
+    }
+};

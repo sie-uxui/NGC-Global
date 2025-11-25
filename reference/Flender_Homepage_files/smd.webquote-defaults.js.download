@@ -1,0 +1,155 @@
+ACC.webquotedefaults = {
+
+	_autoload: [
+		"loadForm"
+	],
+
+	loadForm: function () {
+        var url = ACC.webquotedefaults.getUrl();
+        if (url) {
+            $.getJSON(url, ACC.webquotedefaults.renderForm);
+        }
+	},
+
+	getUrl: function() {
+	    var url;
+        if($("#webQuoteDefaultsForm").length) {
+            url = $("#webQuoteDefaultsForm").data("url");
+        }
+        return url;
+	},
+
+	renderForm: function(data) {
+	    $('#webQuoteDefaultsForm').html($("#webQuoteDefaultsFormTemplate").tmpl(data));
+
+        $('#webQuoteDefaultsForm .js-update-value').on("blur", function(e)
+            {
+                ACC.webquotedefaults.handleUpdateValue($(this));
+            }
+            ).on("keyup", function (e)
+            {
+                return ACC.webquotedefaults.handleKeyEvent($(this), e);
+            }
+            ).on("keydown", function (e)
+            {
+                return ACC.webquotedefaults.handleKeyEvent($(this), e);
+            }
+        );
+
+        $('#webQuoteDefaultsForm .js-add-value').on("click", function(e)
+            {
+                ACC.webquotedefaults.handleAddValue($(this), e);
+            }
+        );
+
+        $('#webQuoteDefaultsForm .js-remove-value').on("click", function(e)
+            {
+                ACC.webquotedefaults.handleRemoveConfirm($(this), e);
+            }
+        );
+	},
+
+    handleAddValue: function(elementRef, event) {
+        event.preventDefault();
+        var idBase = elementRef.data("ref-id"),
+            $fieldId = $('#' + idBase + "Id"),
+            $fieldDesc = $('#' + idBase + "Description"),
+            nameIdNew = $fieldId.attr("name").replace(/_new/,''),
+            nameDescNew = $fieldDesc.attr("name").replace(/_new/,'');
+        $fieldId.attr("name", nameIdNew);
+        $fieldDesc.attr("name", nameDescNew);
+        ACC.webquotedefaults.handleUpdateValue($fieldId, $fieldDesc);
+    },
+
+    handleUpdateValue: function($field, $field2) {
+	    var fieldValueDirty = $field.val() !== $field.data("old-value"),
+            field2ValueDirty = $field2 && $field2.length && $field2.val() !== $field2.data("old-value")
+        if (!fieldValueDirty && !field2ValueDirty) {
+            return;
+        }
+
+        if ($field.attr("name") === "validityOfQuoteOffset") {
+            ACC.webquotedefaults.sendUpdate({validityOfQuoteOffset: $field.val()});
+            return;
+        }
+        if ($field.attr("name").startsWith("defaultSalesOffice")) {
+            ACC.webquotedefaults.sendUpdate({defaultSalesOffices: ACC.webquotedefaults.getValues("defaultSalesOffice")});
+            return;
+        }
+
+        if ($field.attr("name").startsWith("defaultSalesGroup")) {
+            ACC.webquotedefaults.sendUpdate({defaultSalesGroups: ACC.webquotedefaults.getValues("defaultSalesGroup")});
+        }
+    },
+
+    sendUpdate: function(data) {
+        var jsonData = JSON.stringify(data);
+        var url = ACC.webquotedefaults.getUrl();
+        if (url) {
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                contentType: 'application/json',
+                data: jsonData,
+                async: true,
+                success: function (response) {
+                    ACC.webquotedefaults.renderForm(response);
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    // log the error to the console
+                    console.log("The following error occurred: " + textStatus, errorThrown);
+                }
+            });
+        }
+    },
+
+    handleRemoveConfirm: function($btn, event) {
+        event.preventDefault();
+
+        ACC.colorbox.open($btn.data("confirm-title"), {
+            href: "#webQuoteDefaultsFormConfirmDelete",
+            inline: true,
+            width: "400px",
+			onComplete: function ()
+            {
+                $(this).colorbox.resize();
+                $('#webQuoteDefaultsFormConfirmDelete .js-webquote-defaults-confirm-ok').off("click");
+                $('#webQuoteDefaultsFormConfirmDelete .js-webquote-defaults-confirm-ok').on("click", function(e) {
+                    e.preventDefault();
+                    ACC.webquotedefaults.handleRemoveValue($btn);
+                    ACC.colorbox.close();
+                });
+            }
+        });
+    },
+
+    handleRemoveValue: function($btn) {
+        var $fieldId = $('#' + $btn.data("ref-id"));
+        $fieldId.val("");
+        ACC.webquotedefaults.handleUpdateValue($fieldId);
+    },
+
+	getValues: function(name) {
+	    var valueList = {},
+            $idFields = $('#webQuoteDefaultsForm input[name=' + name +'Id]');
+	    $idFields.each(function() {
+	        var $idField = $(this),
+                id = $idField.val().trim();
+	        if (id.length > 0) {
+                valueList[id] = $idField.closest('.valueListRow').find('input[name=' + name + 'Description]').val().trim();
+	        }
+	    });
+	    return valueList;
+	},
+
+	handleKeyEvent: function($field, event) {
+	    if (event.keyCode === 13) {
+            event.preventDefault();
+            ACC.webquotedefaults.handleUpdateValue($field);
+        } else if ($field.attr("name") === "validityOfQuoteOffset") {
+            var value = $field.val();
+            $field.val(value.match(/[0-9]*/));
+        }
+	}
+};

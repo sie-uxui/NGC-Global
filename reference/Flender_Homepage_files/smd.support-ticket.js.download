@@ -1,0 +1,251 @@
+ACC.supportticket = {
+
+    _autoload: [
+        "initPage",
+        "bindCategoryChangeEvent",
+        "bindSidebarContactLink"
+    ],
+
+    _content: $(document).find('#supportTicketForm').closest('.account-section-content'),
+
+    _fields: {
+        'common': $(document).find('#supportTicketForm').closest('.account-section-content').find('.js-common'),
+        'nonCps': $(document).find('#supportTicketForm').closest('.account-section-content').find('.js-noncps, .js-common'),
+        'cps': $(document).find('#supportTicketForm').closest('.account-section-content').find('.js-cps'),
+        'plantDetails': $(document).find('#supportTicketForm').closest('.account-section-content').find('.js-plant-detail'),
+        'all': $(document).find('#supportTicketForm').closest('.account-section-content').find('.js-cps, .js-noncps, .js-common, .js-plant-detail'),
+        'country': $(document).find('#supportTicketForm').closest('.account-section-content').find('.js-country'),
+        'zip': $(document).find('#supportTicketForm').closest('.account-section-content').find('.js-zip'),
+        'city': $(document).find('#supportTicketForm').closest('.account-section-content').find('.js-city'),
+        'responsibilityCode': $(document).find('#supportTicketForm').closest('.account-section-content').find('#responsibilityCode'),
+        'poiPk': $(document).find('#supportTicketForm').closest('.account-section-content').find('#poiPk')
+    },
+
+    initPage: function () {
+        if ($('#salesforceCaseForm').length) {
+            var $topicSelect = $('select.js-topic-select'),
+                $countrySelect = $('select.js-country-select');
+
+            $topicSelect.length && $topicSelect.select2();
+            $countrySelect.length && $countrySelect.select2({
+                templateSelection: ACC.supportticket.selectCountry
+            });
+        }
+    },
+
+    bindCategoryChangeEvent: function () {
+        var $select = $(".js-category-select"),
+            categoryChanged = function () {
+                var $option = $select.find("option:selected"),
+                    category = $option.val(),
+                    isCps = ACC.supportticket._isCps($option),
+                    unselected = category === "0";
+
+                ACC.supportticket._fields.responsibilityCode.val(category);
+                ACC.supportticket._fields.all.addClass('hidden');
+
+                if (isCps) {
+                    ACC.contactperson.init(category);
+                    ACC.supportticket._fields.cps.removeClass('hidden');
+                } else if (!unselected) {
+                    ACC.supportticket._fields.plantDetails.filter("[data-code='" + category + "']").removeClass('hidden');
+                    ACC.supportticket._fields.nonCps.removeClass('hidden');
+                }
+            };
+
+        ACC.supportticket._content.on("change", ".js-category-select", categoryChanged);
+        // check if page was loaded with pre-selected category
+        if ($select.find("option:selected").val !== 0) $select.trigger("change");
+    },
+
+    bindSidebarContactLink: function () {
+        if ($('.page-add-salesforce-case').length) {
+            $(".side-bar-navigation-contact").css("display", "none");
+            return false;
+        }
+
+        enquire.register("screen and (min-width: 768px)", function () {
+
+            $(document).on("click", '.side-bar-navigation--contact-link', function (e) {
+                e && e.preventDefault();
+                var url = $('.side-bar-navigation--contact-link a').attr('href');
+
+                $.ajax({
+                    url: url,
+                    method: 'GET',
+                    complete: function (data) {
+                        $('.side-bar-navigation-contact--content').html(data.responseText);
+                        ACC.supportticket.scrollSidebarContact();
+                        ACC.supportticket.initPage();
+                        ACC.csvimport.changeFileUploadAppearance();
+                        ACC.captcha.bindAll();
+                    }
+                });
+
+                return false;
+            });
+        });
+
+        enquire.register("screen and (max-width: 767px)", function () {
+            $(document).on("click", '.side-bar-navigation--contact-link', function (e) {
+                e && e.preventDefault();
+                window.location.href = $('.side-bar-navigation--contact-link a').data('contact-page');
+            });
+        });
+    },
+
+    scrollSidebarContact: function () {
+        var contactFlyoutPositionTop = $('.side-bar-navigation-contact--content').offset().top - $(window).scrollTop(),
+            lastScrollTop = 0,
+            posTop = 200;
+
+        document.addEventListener("scroll", function () {
+            var st = window.pageYOffset || document.documentElement.scrollTop;
+
+            if (st > lastScrollTop) {
+                if (contactFlyoutPositionTop <= 500) {
+                    contactFlyoutPositionTop += 20;
+                    posTop = posTop + 20;
+                    $(".side-bar-navigation-contact").css("top", "-" + Number(posTop) + "px");
+                }
+            } else {
+                if (contactFlyoutPositionTop >= 90) {
+                    contactFlyoutPositionTop -= 20;
+                    posTop = posTop - 20;
+                    $(".side-bar-navigation-contact").css("top", "-" + Number(posTop) + "px");
+                }
+            }
+            lastScrollTop = st <= 0 ? 0 : st; // For Mobile or negative scrolling
+        }, false);
+    },
+
+    selectCountry: function (state) {
+        const countryIso = state.id,
+            isStates = countryIso === "US",
+            $selectDivStates = $('#salesforceCaseForm').find(".js-country-states"),
+            $selectDivPostalCodes = $('#salesforceCaseForm').find(".js-postal-codes");
+
+        $selectDivStates.addClass('hidden');
+        $selectDivPostalCodes.addClass('hidden');
+
+        console.log("Country ", countryIso, isStates);
+
+        const piplCheckboxWrapper = $("#piplCheckbox");
+        const piplCheckbox = $("#pipl");
+
+        if (piplCheckbox.length && piplCheckboxWrapper.length && countryIso) {
+            switch (countryIso) {
+                case "CN":
+                case "TW":
+                    piplCheckboxWrapper.removeClass("hidden");
+                    break;
+                default:
+                    piplCheckboxWrapper.addClass("hidden");
+                    piplCheckbox.prop("checked", false);
+            }
+        }
+
+        if (countryIso !== 'DE' && countryIso !== 'US') {
+            return state.text;
+        }
+
+        $.ajax({
+            url: ACC.config.encodedContextPath + "/salesforce-case-country-addition/" + (isStates ? "s" : "pc") + "/" + countryIso,
+            method: "GET",
+            dataType: "json",
+            success: function (response) {
+                console.log("response ", response);
+                console.log("response2 ", response.states, response.postalCodes);
+                console.log("response2 ", $.isEmptyObject(response.states));
+
+                if (isStates) {
+                    if (!$.isEmptyObject(response.states)) {
+                        const $sel = $selectDivStates.find("select");
+                        for (let key in response.states) {
+                            var newOption = new Option(response.states[key], key, false, false);
+                            $sel.append(newOption);
+                        }
+                        $sel.trigger('change');
+
+                        $selectDivStates.removeClass('hidden');
+                    }
+                } else {
+                    if (!$.isEmptyObject(response.postalCodes)) {
+                        const $sel = $selectDivPostalCodes.find("select");
+                        for (let key in response.postalCodes) {
+                            var newOption = new Option(response.postalCodes[key], key, false, false);
+                            $sel.append(newOption);
+                        }
+                        $sel.trigger('change');
+
+                        $selectDivPostalCodes.removeClass('hidden');
+                    }
+                }
+            },
+        });
+
+        return state.text;
+    },
+
+    onShowPoi: function (poi, filters, country) {
+        var cityFilter = null,
+            cityFilterValue = undefined;
+        ACC.supportticket._fields.common.removeClass('hidden');
+        ACC.supportticket._fields.poiPk.val(poi.pk);
+
+        if (country) {
+            ACC.supportticket._fields.country.addClass('hidden');
+            ACC.supportticket._fields.country.find("input").val(country);
+        }
+
+        // TODO city and zip
+        for (var key in filters) {
+            if (filters[key].cityFilter) {
+                cityFilter = filters[key];
+            }
+        }
+
+        if (cityFilter) {
+            var $cityFilter = ACC.supportticket._content.find("select.sub-filter[data-filtercode='" + cityFilter.code + "']");
+            cityFilterValue = $cityFilter.find("option:selected").text();
+        }
+
+        var cityZip = ACC.supportticket._splitZipCity(cityFilterValue);
+        if (cityZip.zip) {
+            ACC.supportticket._fields.zip.find("input").val(cityZip.zip);
+        } else {
+            ACC.supportticket._fields.zip.removeClass('hidden');
+        }
+
+        if (cityZip.city) {
+            ACC.supportticket._fields.city.find("input").val(cityZip.city);
+        } else {
+            ACC.supportticket._fields.city.removeClass('hidden');
+        }
+    },
+
+    onHidePoi: function () {
+        ACC.supportticket._fields.nonCps.addClass('hidden');
+        ACC.supportticket._fields.plantDetails.addClass('hidden');
+    },
+
+    _isCps: function ($option) {
+        return $option.data('contactpersonsearch') === true;
+    },
+
+    _splitZipCity: function (value) {
+        var result = {
+            zip: undefined,
+            city: undefined
+        };
+        if (!value) return result;
+
+        // TODO
+        // DE_ZIP = /(?!01000|99999)(0[1-9]\d{3}|[1-9]\d{4})/g;
+
+        var parts = value.split(" ");
+        result.zip = parts[0] && parts[0].trim();
+        result.city = parts[1] && parts[1].trim();
+        return result;
+    }
+};

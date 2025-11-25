@@ -1,0 +1,1725 @@
+ACC.webquote = {
+
+	_autoload: [
+		"initPage",
+		"bindAddressCountryChange",
+		"replaceURLStateOnReload",
+		"webQuoteCreatedTableScroll",
+		"preventFormSubmitOnEnter",
+		"bindDiscountDetailBtn",
+		"bindAddProjectProductLink",
+		"bindWebquoteProductSuccessorPopupLink",
+		"bindEditProductLink",
+		"bindDefineBaseAssemblyLink",
+		"bindBaseAssemblyDefinitionApply",
+		"bindBaseAssemblyDefinitionRemove",
+		"bindEditSalesInformation",
+		"bindSaveProjectProductLink",
+		"bindOpenSpecificProductPopupLink",
+		"bindAddSpecificProductLink",
+		"bindOpenEquipmentPopupLink",
+		"bindAddEquipmentLink",
+		"bindSaveConfigProductLink",
+		"bindRemoveProductLink",
+		"bindLoadWebquotePopup",
+		"bindShowWebquoteButton",
+		"bindEditWebquoteButton",
+		"bindAddConditionButton",
+        "bindRemoveConditionButton",
+		"bindDatePicker",
+		"bindDebitorId",
+		"bindValidityDatePicker",
+		"bindDeliveryDatePicker",
+		"bindUploadProfilPictureButton",
+		"bindPositionTextInput",
+		"updateAddress",
+		"updateEnduserAddress",
+		"updateIntroduction",
+		"updateSummary",
+		"updateShippingInstruction",
+		"updatePrePurchase",
+		"updatePriceExplanation",
+		"updateDocumentCurrency",
+		"updateYText",
+		"updateTextModule",
+		"bindToggleDocumentCurrency",
+		"showTachometer",
+		"bindPurchaseOrderNoField",
+		"bindGenerateDocumentTemplateSelection",
+		"bindDocumentGeneration",
+		"asyncOrderFetching",
+		"awaitAsyncSessionWebQuoteRestoration"
+	],
+
+	initPage: function () {
+		if ($('.page-WebQuoteLandingPage').length) {
+			var $vkBurSelect = $('select#vkBur'),
+				$vkGrpSelect = $('select#vkGrp'),
+				$deliveryTimeSelect = $('select.js-deliveryTimeSelectBox'),
+				$incotermsSelect = $('select.js_incotermsSelectBox'),
+				$termsOfPaymentSelect = $('select.js_termsOfPaymentSelectBox'),
+				$warrantyKeySelect = $('select.js_warrantyKeysSelectBox'),
+				$orderReasonSelect = $('select.js_orderReasonSelectBox');
+			$vkBurSelect.length && $vkBurSelect.select2({
+				tags: true,
+				templateSelection: function(element) {
+					if (element.id === element.text) {
+						return '<span class="key">' + element.id + '</span>';
+					}
+					return '<span class="key">' + element.id + '</span><span class="value">' + element.text + '</span>';
+				},
+				templateResult: function(element){
+					if (element.id === element.text) {
+						return '<span class="key">' + element.id + '</span>';
+					}
+					return '<span class="key">' + element.id + '</span><span class="value">' + element.text + '</span>';
+				},
+				escapeMarkup: function(markup) {
+					return markup;
+				}
+			});
+			$vkGrpSelect.length && $vkGrpSelect.select2({
+				tags: true,
+				templateSelection: function(element){
+					if (element.id === element.text) {
+						return '<span class="key">' + element.id + '</span>';
+					}
+					return '<span class="key">' + element.id + '</span><span class="value">' + element.text + '</span>';
+				},
+				templateResult : function(element){
+					if (element.id === element.text) {
+						return '<span class="key">' + element.id + '</span>';
+					}
+					return '<span class="key">' + element.id + '</span><span class="value">' + element.text + '</span>';
+				},
+				escapeMarkup: function(markup) {
+					return markup;
+				}
+			});
+
+			$deliveryTimeSelect.length && $deliveryTimeSelect.select2();
+			$incotermsSelect.length && $incotermsSelect.select2({
+				templateSelection: ACC.webquote.selectIncoterm1
+			});
+			$termsOfPaymentSelect.length && $termsOfPaymentSelect.select2({
+				templateSelection: ACC.webquote.selectTermsOfPayment
+			});
+			$warrantyKeySelect.length && $warrantyKeySelect.select2({
+				templateSelection: ACC.webquote.selectWarrantyKey
+			});
+			$orderReasonSelect.length && $orderReasonSelect.select2({
+				templateSelection: ACC.webquote.selectOrderReason
+			});
+
+			if(ACC.webquote.listItems.length){
+				ACC.webquote.listItems.forEach(function (item) {
+					ACC.webquote.showTachometer(item);
+				})
+			}
+
+			$("#pricingDisplayLevel").val($("#customPricingDisplayLevel").text());
+		}
+		if($('.page-WebQuoteConfirmationPage').length){
+			if(ACC.webquote.listItemsConfirmationPage.length){
+				ACC.webquote.listItemsConfirmationPage.forEach(function (item) {
+					ACC.webquote.showTachometer(item)
+				})
+			}
+		}
+	},
+
+	replaceURLStateOnReload: function () {
+		if($(".webquote-landingpage-component").length) {
+			history.pushState(null, null, ACC.config.encodedContextPath + "/webquote");
+		}
+	},
+
+	webQuoteCreatedTableScroll: function () {
+		if($(".webquote-landingpage-component").data("webquote-created") === true) {
+			$("html,body").animate({scrollTop: $(".webquote-block--conditions").offset().top - 150});
+		}
+	},
+
+	preventFormSubmitOnEnter: function () {
+		$(document).on("keypress",'#webQuotePageForm', function (e){
+			if (e.keyCode == 13 && !$(e.target).is('textarea')) {
+				e.preventDefault();
+				return false;
+			}
+		});
+	},
+
+	bindAddProjectProductLink: function ()
+	{
+		$(document).on("click",'#addProjectProduct', function (e) {
+			ACC.webquote.addProjectProductTemplate(e);
+			return false;
+		});
+	},
+
+	bindWebquoteProductSuccessorPopupLink: function ()
+	{
+		$(document).on("click",'.item__webquote-product-successor', function (e) {
+			ACC.webquote.loadSuccessorPopup(e);
+			return false;
+		});
+	},
+
+	loadSuccessorPopup: function (e) {
+		var getURL = e.currentTarget.href;
+		ACC.webquote.openProductSuccessorPopup();
+
+		$.ajax({
+			url: getURL,
+
+			success: function (response)
+			{
+				var $cbContent = $('#cboxLoadedContent');
+
+				if($cbContent.length) {
+					$cbContent.html(response);
+					$('#colorbox').colorbox.resize()
+				}
+			}
+		});
+	},
+
+	openProductSuccessorPopup: function () {
+		var title = $('.productsuccessor-popup-title-holder').html();
+
+		ACC.colorbox.open(title,{
+			html: $('.productsuccessor-popup-content-holder').html(),
+			className: 'product-successor',
+			width: "800px",
+			maxWidth: "1200px",
+			height: "400px",
+			maxHeight: "400px",
+			reposition: false
+		});
+	},
+
+	openBaseAssemblyDefinitionPopup: function (entryNo) {
+		var title = $('.baseassemblydefinition-popup-title-holder-' + entryNo).html();
+
+		ACC.colorbox.open(title,{
+			html: $('.baseassemblydefinition-popup-content-holder-' + entryNo).html(),
+			className: 'base-assembly-definition',
+			width: "700px",
+			maxWidth: "700px",
+			height: "320px",
+			maxHeight: "320px",
+			reposition: false,
+			onComplete: function() {
+				var $content = $("#cboxLoadedContent"),
+					$markingSelect = $content.find(".js-baseAssemblyMarkingBox"),
+					$referenceSelect = $content.find(".js-baseAssemblyReferenceBox");
+
+				$markingSelect.select2({
+					width: '100%',
+					dropdownAutoWidth: true,
+					dropdownParent: $('#cboxWrapper')
+				});
+
+				if ($markingSelect.data('selectedcode') && $markingSelect.data('selectedcode').length) {
+					$markingSelect.val($markingSelect.data('selectedcode'));
+					$markingSelect.trigger('change');
+				}
+
+
+				$referenceSelect.select2({
+					width: '100%',
+					dropdownAutoWidth: true,
+					dropdownParent: $('#cboxWrapper')
+				});
+
+				if ($referenceSelect.data('selectedcode') && $referenceSelect.data('selectedcode').length) {
+					$referenceSelect.val($referenceSelect.data('selectedcode'));
+					$referenceSelect.trigger('change');
+				}
+			}
+		});
+	},
+
+	bindBaseAssemblyDefinitionApply: function () {
+		$(document).on("click",'.js_applyBaseAssemblyDefinition', function (e) {
+			var $btn = $(this),
+				$btns = $btn.closest('.webquote-button-row-cb-popup'),
+				entryNo = $btn.data('entryno'),
+				formData = new FormData(),
+				$content = $btn.closest('#cboxLoadedContent'),
+				$selectMark = $content.find('.js-baseAssemblyMarkingBox'),
+				$selectRef = $content.find('.js-baseAssemblyReferenceBox');
+
+			$btns.find('.btn').attr("disabled", true).find('.spinner').show();
+			if ($selectMark.val() && $selectMark.val().trim().length) {
+				formData.append('marking', $selectMark.val());
+			}
+			if ($selectRef.val() && $selectRef.val().trim().length) {
+				formData.append('reference', $selectRef.val());
+			}
+
+			$.ajax({
+				url: ACC.config.encodedContextPath + "/webquote/applyBaseAssemblyDefinition/" + entryNo,
+				data: formData,
+				method: "POST",
+				contentType: false,
+				processData: false,
+				dataType: 'text',
+				cache: false
+			}).done(function ()
+			{
+				// TODO handle error
+				location.reload();
+			});
+
+			return false;
+		});
+	},
+
+	bindBaseAssemblyDefinitionRemove: function () {
+		$(document).on("click",'.js_removeBaseAssemblyDefinition', function (e) {
+			var $btn = $(this),
+				$btns = $btn.closest('.webquote-button-row-cb-popup'),
+				entryNo = $btn.data('entryno'),
+				formData = new FormData(),
+				$content = $btn.closest('#cboxLoadedContent'),
+				$selectMark = $content.find('.js-baseAssemblyMarkingBox'),
+				$selectRef = $content.find('.js-baseAssemblyReferenceBox');
+
+			$btns.find('.btn').attr("disabled", true).find('.spinner').show();
+			if ($selectMark.val() && $selectMark.val().trim().length) {
+				formData.append('marking', $selectMark.val());
+			}
+			if ($selectRef.val() && $selectRef.val().trim().length) {
+				formData.append('reference', $selectRef.val());
+			}
+
+			$.ajax({
+				url: ACC.config.encodedContextPath + "/webquote/removeBaseAssemblyDefinition/" + entryNo,
+				data: formData,
+				method: "POST",
+				contentType: false,
+				processData: false,
+				dataType: 'text',
+				cache: false
+			}).done(function ()
+			{
+				// TODO handle error
+				location.reload();
+			});
+
+			return false;
+		});
+	},
+
+	bindProductSuccessorUpdateLink: function ()
+	{
+		$(document).on("click",'.js_update-product-successor', function (e) {
+			$(this).attr("disabled", true).find(".spinner").show();
+			$(this).siblings("a").attr("disabled", true);
+			return true;
+		});
+	},
+
+	bindEditProductLink: function ()
+	{
+		$(document).on("click",'.js-edit-entry-action-button', function (e){
+			var entryType = $(e.target).closest(".js-edit-entry-action-button").data("webquoteentry-entrytype");
+
+			if(entryType === "PROJECTPRODUCT") {
+				ACC.webquote.editProjectProductTemplate(e);
+				return false;
+			}
+			else {
+				ACC.webquote.editConfigProduct(e);
+				return false;
+			}
+		});
+	},
+
+	bindDefineBaseAssemblyLink: function ()
+	{
+		$(document).on("click",'.js-define-entry-action-button', function (e) {
+			var $link = $(this);
+			ACC.webquote.openBaseAssemblyDefinitionPopup($link.data('entryno'));
+			return false;
+		});
+	},
+
+	bindEditSalesInformation: function ()
+	{
+		$(document).on("click",'.js-toggleEditSalesInformation .edit', function (e) {
+			var $incoterm1 = $(".js_incoterm1, .js_incotermsSelectBox"),
+				$incoterm2 = $(".js_incoterm2"),
+				$termOfPayment = $(".js_termOfPayment, .js_termsOfPaymentSelectBox"),
+				$warrantyKey = $(".js_warrantyKey, .js_warrantyKeysSelectBox"),
+				$orderReason = $(".js_orderReasonSelectBox"),
+				$completeDelivery = $(".js_toggleCompleteDelivery"),
+				$icons = $(this).find(".glyphicon");
+
+			if ($(this).find(".glyphicon-floppy-disk").is(":visible")) {
+				var formData = new FormData();
+
+				$("#incotermsCode1Hidden").val($incoterm1.val());
+				if ($incoterm1.val() && $incoterm1.val().trim().length) {
+					formData.append('incoterm1', $incoterm1.val());
+				}
+				if ($incoterm2.val() && $incoterm2.val().trim().length) {
+					formData.append("incoterm2", $incoterm2.val());
+				}
+				if ($termOfPayment.val() && $termOfPayment.val().trim().length) {
+					formData.append("termOfPayment", $termOfPayment.val());
+				}
+				if ($warrantyKey.val() && $warrantyKey.val().trim().length) {
+					formData.append("warrantyKey", $warrantyKey.val());
+				}
+				if ($orderReason.val() && $orderReason.val().trim().length) {
+					formData.append("orderReason", $orderReason.val());
+				}
+				formData.append("completeDelivery", $completeDelivery.is(':checked'));
+
+				$.ajax({
+					url: ACC.config.encodedContextPath + "/webquote/updateSalesInformation",
+					data: formData,
+					method: "POST",
+					contentType: false,
+					processData: false,
+					dataType: 'text',
+					cache: false
+				}).done(function ()
+				{
+					$incoterm1.attr("readonly", true).attr("disabled", true);
+					$incoterm2.attr("readonly", true);
+					$termOfPayment.attr("readonly", true).attr("disabled", true);
+					$warrantyKey.attr("readonly", true).attr("disabled", true);
+					$orderReason.attr("disabled", true);
+					$completeDelivery.attr("disabled", true);
+					$icons.toggle();
+				});
+
+			} else {
+				$incoterm1.removeAttr("readonly").removeAttr("disabled");
+				$incoterm2.removeAttr("readonly");
+				$termOfPayment.removeAttr("readonly").removeAttr("disabled");
+				$warrantyKey.removeAttr("readonly").removeAttr("disabled");
+				$orderReason.removeAttr("disabled");
+				$completeDelivery.removeAttr("disabled");
+				$icons.toggle();
+			}
+		});
+	},
+
+	bindSaveProjectProductLink: function ()
+	{
+		$(document).on("click",'.webquote-item__list--item .js-cartItemSaveBtn', function (e){
+			ACC.webquote.saveProjectProductTemplate(e);
+		});
+	},
+
+	bindSaveConfigProductLink: function ()
+	{
+		$(document).on("click",'.webquote-item__list--config-item .js-cartItemSaveBtn, #colorbox  .js-cartItemSaveBtn', function (e){
+			ACC.webquote.saveConfigProduct(e);
+		});
+	},
+
+	bindRemoveProductLink: function ()
+	{
+		$(document).on("click",'.js-remove-entry-action-button', function (e){
+			ACC.webquote.removeProduct(e);
+		});
+	},
+
+	bindOpenSpecificProductPopupLink: function ()
+	{
+		$(document).on("click",'#addSpecificProduct', function (e) {
+			ACC.webquote.addSpecificProductPopup(e);
+			return false;
+		});
+	},
+
+	bindAddSpecificProductLink: function ()
+	{
+		// suppress submit while pressing enter for product search
+		$(document).on("submit", '#colorbox .add-specific-product-form', function (e) {
+			var $popup = $("#colorbox .specific-product-popup"),
+				$findProductBtn = $popup.find(".js-find-product");
+			if ($findProductBtn.is(":visible") === true) {
+				ACC.quickorder.handleFocusOutOnSkuInput(e);
+				return false;
+			}
+		});
+
+		$(document).on("click", '#colorbox .specific-product-popup .js-specific-product-submit', function () {
+			var $this = $(this),
+				$colorbox = $('#colorbox'),
+				$addSpecificProductForm = $colorbox.find('.add-specific-product-form.configure_form'),
+				$popup = $addSpecificProductForm.find('.specific-product-popup');
+
+			$this.prop('disabled', true);
+			$this.find(".spinner").show();
+
+			$addSpecificProductForm.submit();
+
+			return false;
+		});
+	},
+
+	bindOpenEquipmentPopupLink: function ()
+	{
+		$(document).on("click",'#addEquipment', function (e) {
+			ACC.webquote.addEquipmentPopup(e);
+			return false;
+		});
+	},
+
+	bindAddEquipmentLink: function ()
+	{
+		var searchFct = function(e, $btn) {
+			$btn.prop('disabled', true);
+			$btn.find(".spinner").show();
+
+			ACC.webquote.searchEquipment(e);
+		};
+
+		// suppress submit while pressing enter for product search
+		$(document).on("click", '#colorbox .add-equipment-form .js-find-equipment', function (e) {
+			e && e.preventDefault();
+			searchFct(e, $(this));
+			return false;
+		});
+
+		$(document).on("keydown", ".add-equipment-form", function(e) {
+			if (e.keyCode === 13) {
+				e && e.preventDefault();
+				searchFct(e, $(this));
+				return false;
+			}
+			return true;
+		});
+	},
+
+	bindAddConditionButton: function ()
+	{
+		$(document).on("click",'.js-saveConditionButton', function (e) {
+			ACC.webquote.addCondition();
+		});
+	},
+
+    bindRemoveConditionButton: function ()
+    {
+        $(".js-removeConditionButton").click(function () {
+            ACC.webquote.addCondition(""); // Empty value causes deletion
+        });
+    },
+
+	bindUploadProfilPictureButton: function (e)
+	{
+		$('.js-picture-upload__input').on('change', function (e) {
+			ACC.webquote.uploadProfilPicture(e);
+			return false;
+		});
+	},
+
+	bindPositionTextInput: function (e)
+	{
+		$('.js-position-texts').each(function () {
+			const position = $(this);
+			const action = $(this).data('action');
+			const positionTexts = $(this).find('.js-sku-position-text-input-field');
+
+			positionTexts.on('focusout', function (e) {
+				const formData = new FormData();
+				positionTexts.each(function() {
+					formData.append($(this).attr('name'), $(this).val());
+				});
+				position.find('input:hidden').each(function() {
+					formData.append($(this).attr('name'), $(this).val());
+				});
+
+				$.ajax({
+					url: action,
+					async: true,
+					data: formData,
+					method: "POST",
+					contentType: false,
+					processData: false,
+					success: function (response)
+					{
+						console.log("Update Resp: ", response);
+					}
+				});
+			});
+		});
+	},
+
+
+
+	bindCartItemDetailBtn : function()
+	{
+		$('.js-cartItemDetailBtn').click(function(event) {
+			event.stopPropagation();
+			var thisDetailGroup =  $(this).parent('.js-cartItemDetailGroup');
+			$(thisDetailGroup).toggleClass('open'); //only in its parent
+			if ( $(thisDetailGroup).hasClass('open') )  {
+				//close all if not this parent
+				$('.js-cartItemDetailGroup').not( thisDetailGroup ).removeClass('open');
+				//change aria
+				$('.js-cartItemDetailBtn').attr('aria-expanded', 'true');
+
+			} else {
+				$('.js-cartItemDetailBtn').attr('aria-expanded', 'false');
+			}
+			$(document).click( function(){
+				$(thisDetailGroup).removeClass('open');
+			}); // closes when clicking outside this div
+		});
+
+		//enable comment for this item only
+		$('.js-entry-comment-button').click(function(event) {
+			event.preventDefault();
+			var linkID = $(this).attr('href');
+			$( linkID ).toggleClass('in');
+			$( thisDetailGroup ).removeClass('open');
+		});
+	},
+
+	bindDiscountDetailBtn : function()
+	{
+		$('.js-discountDetailBtn').click(function(event) {
+			event.stopPropagation();
+			var thisDetailGroup =  $(this).parent('.js-discountDetailGroup');
+			$(thisDetailGroup).toggleClass('open'); //only in its parent
+			if ( $(thisDetailGroup).hasClass('open') )  {
+				//change aria
+				$('.js-discountDetailBtn').attr('aria-expanded', 'true');
+
+			} else {
+				$('.js-discountDetailBtn').attr('aria-expanded', 'false');
+			}
+		});
+	},
+
+	saveProjectProductTemplate: function (event) {
+		var $item = $(event.target).closest(".item__list--item"),
+			$action = $item.find(".js-cartItemSaveBtn").data("action-url"),
+			options = {};
+
+		if($action === "updateWebQuoteEntry") {
+			options = {
+				'positionNumber': $item.find(".projectProductPosition").val(),
+				'customName': $item.find(".projectProductName").val(),
+				'productCode': $item.find(".projectProductCode").val(),
+				'customDescription': $item.find(".projectProductText").val(),
+				'customPrice': $item.find(".projectProductPrice").val(),
+				'positionQty': $item.find(".projectProductQuantity").val(),
+				'deliveryTimeCode': $item.find(".js-deliveryTimeDummySelectBox").val()
+			}
+		}
+		else {
+			options = {
+				'projectProductPosition': $item.find(".projectProductPosition").val(),
+				'projectProductName': $item.find(".projectProductName").val(),
+				'projectProductCode': $item.find(".projectProductCode").val(),
+				'projectProductText': $item.find(".projectProductText").val(),
+				'projectProductPrice': $item.find(".projectProductPrice").val(),
+				'projectProductQuantity': $item.find(".projectProductQuantity").val(),
+				'projectProductDeliveryTimeCode': $item.find(".js-deliveryTimeDummySelectBox").val(),
+				'introduction': $("#introduction").val(),
+				'summary': $("#summary").val(),
+				'shippingInstruction': $("#shippingInstruction").val()
+			}
+		}
+		// console.log("SAVE ", options);
+
+		$item.find(".js-cartItemSaveBtn").prop('disabled', true);
+
+		var updateAction = function(data) {
+			if($action === "updateWebQuoteEntry") {
+// console.log("DONE A ", $action);
+				//location.reload();
+				var smdDocument = document.open("text/html", "replace");
+				smdDocument.write(data);
+				smdDocument.close();
+			}
+			else {
+				var url = window.location.href,
+					param = "sq=true&sc=true&el=true&hc=true";
+				url += (url.indexOf('?') > -1 ? '&' : '?') + param;
+// console.log("URL ", url)
+				window.location.href = url;
+				//$item.find(".js-cartItemSaveBtn").prop('disabled', false);
+				//ACC.webquote.addProjectProductToCartItems(data, $item);
+			}
+			$item.removeClass('edit');
+		};
+
+		$.ajax({
+			url: ACC.config.encodedContextPath + "/webquote/" + $action,
+			async: true,
+			data: options,
+			method: "POST",
+			error: function (data) {
+				if (data && data.status === 200) {
+					updateAction(data.responseText);
+				} else {
+					$item.find(".js-cartItemSaveBtn").prop('disabled', false);
+				}
+			},
+		}).done(function (data)
+		{
+			updateAction(data);
+		})
+	},
+
+	saveConfigProduct: function (event) {
+		let $item = $(event.target).closest(".item__list--item-wrapper");
+		let $btn = $item.find('.js-cartItemSaveBtn');
+		let	afterRequestActions = function($btn, $item) {
+				$btn.removeProp('disabled').find('.spinner').hide();
+				var $dtSelect = $item.find(".js-deliveryTimeSelect").addClass('hidden').find('select');
+				$dtSelect.prop('disabled', true);
+				$item.find(".js-deliveryTimeLabel").removeClass('hidden').html($dtSelect.find("option:selected").text());
+				$item.removeClass('edit');
+				$.colorbox.close();
+			};
+
+		if (!$item.length) {
+			var $peForm = $('#colorbox .price-elements-form');
+			$item = $('#' + $peForm.data('pos-number-parent') + '-' + $peForm.data('product-code-parent'));
+			$btn = $peForm.find('.js-cartItemSaveBtn');
+		}
+
+		const items = $item.find("system-config-data").length
+			? $item.find("li.item__list--item")
+			: [$item[0]];
+
+		const optionsList = [];
+
+		for (let i = 0; i < items.length; i++) {
+			const $item = $(items[i]);
+			if (!$item.find(".item__pos").length) {
+				continue;
+			}
+
+			var $listPriceSpan = $item.find('.item__price .item_condition');
+
+			var options = {
+				'positionNumber': $item.find(".item__pos").html(),
+				'productCode': $item.find(".item__code-hidden").html().trim(),
+				'positionQty': $item.find("input[name=quantity]").val(),
+				'manualdiscountType':$item.find(".js-manualdiscount").data("webquoteentry-zlpm-kschl"),
+				'manualdiscountValue':$item.find("input[name=manualdiscount]").val(),
+				'manualdiscountValueUnit':$item.find(".js-manualdiscount").data("webquoteentry-zlpm-koein"),
+				'hiddendiscountType':$item.find(".js-hiddendiscount").data("webquoteentry-zkjv-kschl"),
+				'hiddendiscountRate':$item.find("input[name=hiddendiscount]").val(),
+				'hiddendiscountRateUnit':$item.find(".js-hiddendiscount").data("webquoteentry-zkjv-koein"),
+				'discountZKJ1Type':$item.find(".js-discountZKJ1").data("webquoteentry-zkj1-kschl"),
+				'discountZKJ1Rate':$item.find("input[name=discountZKJ1]").val(),
+				'discountZKJ1RateUnit':$item.find(".js-discountZKJ1").data("webquoteentry-zkj1-koein"),
+				'discountZKJ2Type':$item.find(".js-discountZKJ2").data("webquoteentry-zkj2-kschl"),
+				'discountZKJ2Rate':$item.find("input[name=discountZKJ2]").val(),
+				'discountZKJ2RateUnit':$item.find(".js-discountZKJ2").data("webquoteentry-zkj2-koein"),
+				'discountZKPMType':$item.find(".js-discountZKPM").data("webquoteentry-zkpm-kschl"),
+				'discountZKPMValue':$item.find("input[name=discountZKPM]").val(),
+				'discountZKPMValueUnit':$item.find(".js-discountZKPM").data("webquoteentry-zkpm-koein"),
+				'deliveryTimeCode':$item.find(".js-deliveryTimeSelect").find("select").val(),
+				'priceElementsData': ACC.priceElements.getPriceElementsValues()
+			}
+
+			if (Boolean($listPriceSpan.data('ismanuallistprice'))) {
+				options['customPrice'] = $listPriceSpan.find("#listprice").val();
+			}
+
+			let	$smdConditions = $item.find('.js-smd-discount');
+			console.log("SMD COND ", $smdConditions);
+			if ($smdConditions.length) {
+				var smdConditionData = [];
+				$smdConditions.each(function () {
+					var code = $(this).data("webquoteentry-kschl");
+					console.log("Item ", code, this);
+					smdConditionData.push(
+						{
+							'conditionType':code,
+							'conditionValue':$(this).find("input[name=discount" + code + "]").val(),
+							'conditionValueUnit':$(this).data("webquoteentry-koein")
+						}
+					);
+				})
+				options['smdConditions'] = smdConditionData;
+			}
+
+			console.log("Options ", options);
+			optionsList.push(options);
+		}
+
+		$btn.prop('disabled', true);
+		$btn.find('.spinner').show();
+
+		const endpoint = optionsList.length === 1
+			? "/webquote/updateWebQuoteEntryJson"
+			: "/webquote/updateWebQuoteEntriesJson";
+
+		$.ajax({
+			url: ACC.config.encodedContextPath + endpoint,
+			async: true,
+			data: JSON.stringify(optionsList.length === 1 ? optionsList[0] : optionsList),
+			contentType: "application/json; charset=utf-8",
+			dataType: "html",
+			method: "POST",
+			success: function (data) {
+				// SIEMDSAP-4605 - writing the result to document object causes errors - workaround: reload
+				location.reload();
+			},
+			error: function (resp) {
+				afterRequestActions($btn, $item);
+			},
+		}).done(function (data)
+		{
+			afterRequestActions($btn, $item);
+		})
+	},
+
+	addProjectProductTemplate: function () {
+		var projectProductTemplateUrl = $("#addProjectProduct").data("template");
+		ACC.webquote.handlerDisableAllButtons();
+
+		$.ajax({
+			url: ACC.config.encodedContextPath + projectProductTemplateUrl,
+			async: true,
+			dataType: "html",
+		}).done(function (data)
+		{
+			$("#addProjectProduct .spinner").css("display", "none")
+			$(".item__list__cart").append(data);
+
+			$("html,body").animate({scrollTop: $(".item__list .item__list--item:last-child").offset().top - 100});
+
+			var $lastListItem = $(".item__list__cart").find(".item__list--item").last();
+			$lastListItem.find(".js-cartItemSaveBtn").show();
+			$lastListItem.addClass('edit');
+			$(".item__list__cart").find(".js-cartItemDetailBtn").hide();
+
+			var $deliveryTimeDummySelect = $('select.js-deliveryTimeDummySelectBox');
+			$deliveryTimeDummySelect.length && $deliveryTimeDummySelect.select2();
+
+			ACC.webquote.bindCartItemDetailBtn();
+		});
+	},
+
+	editProjectProductTemplate: function (event) {
+		var projectProductTemplateUrl = $("#addProjectProduct").data("template"),
+			$item = $(event.target).closest(".item__list--item");
+
+		var options = {
+			'projectProductPosition': $item.find(".item__pos").html(),
+			'projectProductName': ($item.find(".item__name").html() || '').trim(),
+			'projectProductCode': $item.find(".item__code").html(),
+			'projectProductText': ($item.find(".item__description").html() || '').trim(),
+			'projectProductPrice': $item.find(".item__price .item__price-formatted").html(),
+			'projectProductQuantity': $item.find(".item__quantity").find("input").val(),
+			'projectProductDeliveryTimeCode': $item.find(".item__delivery-date").find("select").val()
+		};
+
+		$.ajax({
+			url: ACC.config.encodedContextPath + projectProductTemplateUrl,
+			async: true,
+			data: options,
+			dataType: "html",
+		}).done(function (data)
+		{
+			var $data = $(data);
+
+			$data.find(".projectProductPosition").val(options.projectProductPosition);
+			$data.find(".projectProductName").val(options.projectProductName);
+			//$data.find(".item__code").html(productData.projectProductData.projectProductCode);
+			$data.find(".projectProductText").val(options.projectProductText);
+			$data.find(".projectProductPrice").val(options.projectProductPrice);
+			//$data.find(".item__currency").html(productData.projectProductData.projectProductCurrency);
+			$data.find(".projectProductQuantity").val(options.projectProductQuantity);
+			$data.find(".js-deliveryTimeDummySelectBox").val(options.projectProductDeliveryTimeCode).trigger('change');
+
+			$item.after($data);
+			$item.remove();
+
+			ACC.webquote.handlerDisableAllButtons(true);
+			$(".js-cartItemDetailBtn").hide();
+			$data.find(".js-cartItemSaveBtn").show();
+			$data.find(".js-cartItemSaveBtn").prop('disabled', false);
+			$data.find(".js-cartItemSaveBtn").data("action-url", "updateWebQuoteEntry");
+			$data.find(".projectProductPosition").prop('disabled', true);
+			$data.removeClass('edit');
+
+
+			ACC.webquote.bindCartItemDetailBtn();
+		});
+	},
+
+	editConfigProduct : function(event)
+	{
+		var $item = $(event.target).closest(".item__list--item-wrapper"),
+			$listPriceSpan = $item.find('.item__price .item_condition');
+
+		var $childitem = $item.find(".form-itemChild-control");
+		if ($childitem.length > 0) {
+			$(".form-itemChild-control").css("pointer-events", "none").css("background-color", "#eeeeee");
+		}
+
+		ACC.webquote.handlerDisableAllButtons(true);
+
+		$("#webQuotePageForm .js-cartItemDetailBtn").prop('disabled', true);
+		$("#webQuotePageForm #sendQuote").prop('disabled', true);
+		$item.find(".item__quantity input").prop('disabled', false);
+		if (!!$listPriceSpan.data('ismanuallistprice')) {
+			var $manualInput = $listPriceSpan.find("input");
+			$listPriceSpan.addClass('manual');
+			$manualInput.get(0).type = 'text';
+			$manualInput.get(0).name = 'customPrice';
+			$manualInput.get(0).placeholder = $listPriceSpan.data('currencyiso');
+			$manualInput.val($manualInput.data('value') || 0);
+			$manualInput.prop('disabled', false);
+			$listPriceSpan.find(".discount__final").hide();
+		}
+
+		if (Boolean($item.find(".js-manualdiscount").data('toggle-input'))) {
+			$item.find(".manualdiscount").toggle();
+			$item.find(".zplm-not-set-text").toggle();
+		}
+
+		$item.find(".manualdiscount").prop('disabled', false);
+		$item.find(".js-discountZKPM").removeClass('hidden').find('#discountZKPM').prop('disabled', false);
+		$item.find(".js-deliveryTimeSelect").removeClass('hidden').find('select').prop('disabled', false);
+		$item.find(".js-deliveryTimeLabel").addClass('hidden');
+		$item.find(".js-cartItemDetailBtn").hide();
+		$item.find(".dropdown-menu").hide();
+		$item.find(".js-cartItemSaveBtn").show();
+		$item.find(".js-cartItemSaveBtn").prop('disabled', false);
+		$item.addClass('edit');
+
+
+		$item.find(".dropdown-menu__discount input").each(function() {
+			if(!$(this).data("is-disabled")) {
+				$(this).prop('disabled', false);
+			}
+		});
+	},
+
+	removeProduct : function(event)
+	{
+		var $item = $(event.target).closest(".item__list--item");
+		var removeProductURL = $item.find(".js-remove-entry-action-button").data("webquoteentry-action-url");
+
+		ACC.webquote.handlerDisableAllButtons();
+		$item.find(".js-cartItemDetailGroup").removeClass("open");
+
+		var options = {
+			'productCode': $item.find(".js-remove-entry-action-button").data("webquoteentry-product-code"),
+			'entryNumbers': $item.find(".js-remove-entry-action-button").data("action-webquoteentry-numbers"),
+			'rejectionControl': $item.find(".js-remove-entry-action-button").data("webquoteentry-rejection-control-flag"),
+			'introduction': $("#introduction").val(),
+			'summary': $("#summary").val(),
+			'shippingInstruction': $("#shippingInstruction").length ? $("#shippingInstruction").val() : "",
+			'prePurchase': $("#prePurchase").length ? $("#prePurchase").val() : ""
+		};
+
+		$.ajax({
+			url: removeProductURL,
+			async: true,
+			data: options,
+			method: "POST",
+		}).done(function (data)
+		{
+			var smdDocument = document.open("text/html", "replace");
+			smdDocument.write(data);
+			smdDocument.close();
+		});
+	},
+
+	addSpecificProductPopup: function () {
+		var title = $('.add-specific-product-popup-title-holder').html();
+		$(".specific-product-popup .js-find-product").prop('disabled', false);
+		$(".specific-product-popup .input--specific-product").prop('readonly', false);
+		const reconfigureButton = $(".js-reconfigure-product");
+		reconfigureButton.hide();
+		reconfigureButton.prop("disabled", false);
+		reconfigureButton.find(".spinner").hide();
+		$(".specific-product-popup .js-find-product").show();
+
+		ACC.colorbox.open(title,{
+			html: $('.specific-product-popup-content-holder').html(),
+			width: 500,
+			maxHeight: '90%',
+			onComplete: function(){
+				ACC.quickorder.bindAddSkuInputRow();
+				ACC.colorbox.resize();
+			},
+			onClosed: function () {
+				ACC.webquote.handlerFindSpecificProduct(false);
+			}
+		});
+	},
+
+	addEquipmentPopup: function () {
+		var title = $('.add-equipment-popup-title-holder').html();
+		$(".equipment-popup .js-find-equipment").prop('disabled', false);
+		$(".equipment-popup .input--equipment").prop('readonly', false);
+
+		ACC.colorbox.open(title,{
+			html: $('.equipment-popup-content-holder').html(),
+			width: 700,
+			fixed: true,
+			onComplete: function(){
+				ACC.colorbox.resize();
+			}
+		});
+	},
+
+	searchEquipment: function (e) {
+		var $form = $('#colorbox .add-equipment-form');
+
+		$.ajax({
+			url: $form.attr('action'),
+			async: true,
+			data: $form.serialize(),
+			method: "POST",
+			success: function (data) {
+				$form.find(".equipment-list-container").html(data);
+				$form.find(".js-find-equipment").prop('disabled', false).find(".spinner").hide();
+				window.setTimeout(function() {
+					ACC.colorbox.resize({'height': '50%'});
+				}, 500);
+			},
+			error: function () {
+				console.error("ERROR searching equipment");
+			},
+		})
+	},
+
+	addCondition: function (conditionValue) {
+		var $conditionType = $("#conditionType").val();
+		var $conditionValue = conditionValue ?? $("#conditionValue").val();
+
+		var options = {
+			'conditionType': $conditionType,
+			'conditionValue': $conditionValue
+		};
+
+		$(".js-saveConditionButton").prop('disabled', true);
+
+		$.ajax({
+			url: ACC.config.encodedContextPath + "/webquote/applyCondition",
+			async: true,
+			data: options,
+			method: "POST",
+			success: function (data) {
+				var smdDocument = document.open("text/html", "replace");
+				smdDocument.write(data);
+				smdDocument.close();
+			},
+			error: function () {
+				$(".js-saveConditionButton").prop('disabled', false);
+			},
+		})
+	},
+
+	bindLoadWebquotePopup: function () {
+		$(document).on("click",'.js-load-webquote', function (e){
+			e.preventDefault();
+			var title = $('.sap-quote-popup-title-holder').html(),
+				content = $('.sap-quote-popup-content-holder').html();
+
+			ACC.colorbox.open(title,{
+				html: content,
+				width: 700,
+				onComplete: function(){
+					ACC.colorbox.resize();
+				}
+			});
+		});
+	},
+
+	bindShowWebquoteButton: function () {
+		$(document).on("click",'.js-show-quote__save-button', function (){
+			var $btns = $("#colorbox").find("button.btn-primary"),
+				value = $("#cboxLoadedContent .js-open-quote__input").val();
+			if (!value || !value.length || !$.trim(value).length) {
+				return;
+			}
+			$btns.prop("disabled", true);
+			window.location = ACC.config.encodedContextPath + "/webQuoteCheckout/webQuoteConfirmation/" + value;
+		});
+	},
+
+	bindEditWebquoteButton: function () {
+		$(document).on("click",'.js-edit-quote__save-button', function (){
+			var $btns = $("#colorbox").find("button.btn-primary"),
+				value = $("#cboxLoadedContent .js-open-quote__input").val();
+			if (!value || !value.length || !$.trim(value).length) {
+				return;
+			}
+			$btns.prop("disabled", true);
+			window.location = ACC.config.encodedContextPath + "/webquote/loadWebQuote/" + value;
+		});
+	},
+
+	bindDatePicker : function(data) {
+		var item = $('.js-date');
+		item.each(function() {
+			ACC.global.setupDatePicker($(this));
+		});
+
+		$(".js-date").datepicker();
+	},
+
+	selectIncoterm1 : function(state) {
+		var $hiddenIconterm1 = $("#webQuoteSalesInformationForm").find("input[name='salesInformation.incotermCode1Hidden']");
+		$hiddenIconterm1.val(state.id);
+		return state.text;
+	},
+
+	selectTermsOfPayment : function(state) {
+		var $hiddenTermOfPayment = $("#webQuoteSalesInformationForm").find("input[name='salesInformation.termOfPaymentCodeHidden']");
+		$hiddenTermOfPayment.val(state.id);
+		return state.text;
+	},
+
+	selectWarrantyKey : function(state) {
+		var $hiddenWarrantyKey = $("#webQuoteSalesInformationForm").find("input[name='salesInformation.warrantyKeyCodeHidden']");
+		$hiddenWarrantyKey.val(state.id);
+		return state.text;
+	},
+
+	selectOrderReason : function(state) {
+		var $hiddenOrderReason = $("#webQuoteSalesInformationForm").find("input[name='salesInformation.orderReasonCodeHidden']");
+		$hiddenOrderReason.val(state.id);
+		return state.text;
+	},
+
+	bindDebitorId : function() {
+		$(document).on("blur, keyup",'#debitorId', function (e) {
+			var $this = $(e.target),
+				$addressForm = $('#dummySoldToAddressForm'),
+				$cpdAddressField = $addressForm.find("input[name='cpdAddress']"),
+				toggleButtons = function (isExtended) {
+					$('#createWebQuoteBody').toggle(!isExtended);
+					$('#createWebQuoteBodyExtended').toggle(isExtended);
+				};
+
+			if (!$this.val() || !$this.val().length) {
+				if (!$addressForm.hasClass('hidden')) $addressForm.addClass('hidden');
+				$cpdAddressField.val(false);
+				toggleButtons(false);
+				return;
+			}
+
+			var dummyNosString = $this && $this.length && $this.closest('.js-debitorIdCont').data('dummycpdcustomernos'),
+				dummyNoList = (dummyNosString || "").split(",");
+			// check for dummy number
+			if (dummyNoList && dummyNoList.length && dummyNoList.includes($this.val())) {
+				$addressForm.removeClass('hidden');
+				$cpdAddressField.val(true);
+				toggleButtons(true);
+			} else {
+				if (!$addressForm.hasClass('hidden')) $addressForm.addClass('hidden');
+				$cpdAddressField.val(false);
+				toggleButtons(false);
+			}
+		});
+	},
+
+	bindValidityDatePicker : function(data) {
+		var item = $('.js-quoteValidity');
+		item.each(function() {
+			ACC.global.setupDatePicker($(this));
+		});
+
+		$(".js-quoteValidity").datepicker();
+	},
+
+	bindDeliveryDatePicker : function(data) {
+		var item = $('.js-deliveryDate');
+		item.each(function() {
+			ACC.global.setupDatePicker($(this));
+		});
+
+		$(".js-deliveryDate").datepicker();
+	},
+
+	handlerFindSpecificProduct : function(product, event) {
+		event && event.preventDefault();
+		var $popup = $("#colorbox .specific-product-popup"),
+			$findProductBtn = $popup.find(".js-find-product"),
+			$specificProductInput = $popup.find(".input--specific-product"),
+			$submitSpecificProductBtn = $popup.find(".js-specific-product-submit");
+
+		if(product) {
+			$findProductBtn.find(".spinner").hide();
+			$findProductBtn.hide();
+			$submitSpecificProductBtn.show();
+			window.setTimeout(ACC.colorbox.resize, 500);
+		} else {
+			$findProductBtn.find(".spinner").hide();
+			$findProductBtn.show().prop('disabled', false);
+			$specificProductInput.prop('readonly', false);
+			$submitSpecificProductBtn.hide();
+			window.setTimeout(ACC.colorbox.resize, 500);
+		}
+	},
+
+	handlerDisableAllButtons : function(hideSpinner) {
+		$(".webquote-add-product__buttons button").prop('disabled', true);
+		$(".js-cartItemSaveBtn").prop('disabled', true);
+		$(".js-cartItemDetailBtn").prop('disabled', true);
+		if(hideSpinner) $(".spinner").css("display", "none")
+	},
+
+	handlerEnableAllButtons : function() {
+		$(".webquote-add-product__buttons button").prop('disabled', false);
+		$(".js-cartItemSaveBtn").prop('disabled', false);
+		$(".js-cartItemDetailBtn").prop('disabled', false);
+	},
+
+	handlerFindProductButton : function() {
+		$(".specific-product-popup .js-find-product").prop('disabled', true);
+		$(".specific-product-popup .input--specific-product").prop('readonly', true);
+		return false;
+	},
+
+	isWebQuotePage : function () {
+		return $("body").hasClass("page-WebQuoteLandingPage");
+	},
+
+	uploadProfilPicture: function (e) {
+		var selectedFile = $('#picturefile').prop('files')[0];
+		var sapNummer = $('#sapNummer').val();
+		var firstName = $('input[name = "firstName"]').val();
+		var lastName = $('input[name = "lastName"]').val();
+
+		var form = document.getElementById('uploadProfilPictureForm');
+		var formData = new FormData();
+		formData.append('picturefile', selectedFile);
+		formData.append("sapNummer", sapNummer);
+		formData.append("firstName", firstName);
+		formData.append("lastName", lastName);
+
+		$.ajax({
+			url: form.action,
+			type: 'POST',
+			data: formData,
+			contentType: false,
+			processData: false,
+			dataType: 'text',
+			cache: false,
+			success: function (data) {
+				location.reload();
+			}
+		})
+	},
+
+	updateAddress: function () {
+		$(document).on("blur",'.js-addressForm :input', function (){
+			var $this = $(this),
+				$formGroup = $this.closest('.form-group'),
+				isPostCode = $this.attr('id') === 'address.postcode',
+				data = $(".js-addressForm :input").serialize().replaceAll("deliveryAddress.", "") + (isPostCode ? '&postCode=true' : ''),
+				url = "/updateAddress";
+
+			$.ajax({
+				url: ACC.config.encodedContextPath + "/webquote" + url,
+				async: true,
+				data: data,
+				method: "POST",
+			}).done(function(resp) {
+				$formGroup.children('.help-block').remove();
+				if (resp && resp.error) {
+					$formGroup.addClass('has-error');
+					$formGroup.append($('<div></div>').addClass('help-block').text(resp.error));
+					$('#sendQuote').prop( "disabled", true );
+				} else {
+					$formGroup.removeClass('has-error');
+					$('#sendQuote').prop( "disabled", false );
+				}
+			});
+		});
+	},
+
+	updateEnduserAddress: function () {
+		$(document).on("blur",'.js-enduserAddressForm :input', function (){
+			var $this = $(this),
+				$formGroup = $this.closest('.form-group'),
+				isPostCode = $this.attr('id') === 'enduserAddress.postcode',
+				data = $(".js-enduserAddressForm :input").serialize().replaceAll("enduserAddress.", "") + (isPostCode ? '&postCode=true' : ''),
+				url = "/updateEnduserAddress";
+
+			$.ajax({
+				url: ACC.config.encodedContextPath + "/webquote" + url,
+				async: true,
+				data: data,
+				method: "POST",
+			}).done(function(resp) {
+				$formGroup.children('.help-block').remove();
+				if (resp && resp.error) {
+					$formGroup.addClass('has-error');
+					$formGroup.append($('<div></div>').addClass('help-block').text(resp.error));
+					$('#sendQuote').prop( "disabled", true );
+				} else {
+					$formGroup.removeClass('has-error');
+					$('#sendQuote').prop( "disabled", false );
+				}
+			});
+		});
+	},
+
+	updateIntroduction: function () {
+		$(document).on("blur",'#introduction', function (){
+			var data = encodeURIComponent(this.value),
+				url = "/updateAdditionalText?text=" + data + "&textPosition=PRE";
+
+			ACC.webquote.updateValue(url);
+		});
+
+		$(document).on("keyup",'#introduction', function (){
+			var data = encodeURIComponent(this.value),
+				url = "/updateAdditionalText?text=" + data + "&textPosition=PRE";
+
+			if (this.timer) clearTimeout(this.timer);
+
+			if (this.value) {
+				this.timer = setTimeout(function() {ACC.webquote.updateValue(url);}, 10000)
+			}
+		});
+	},
+
+	updateSummary: function () {
+		$(document).on("blur",'#summary', function (){
+			var data = encodeURIComponent(this.value),
+				url = "/updateAdditionalText?text=" + data + "&textPosition=POST";
+
+			ACC.webquote.updateValue(url);
+		});
+
+		$(document).on("keyup",'#summary', function (){
+			var data = encodeURIComponent(this.value),
+				url = "/updateAdditionalText?text=" + data + "&textPosition=POST";
+
+			if (this.timer) clearTimeout(this.timer);
+
+			if (this.value) {
+				this.timer = setTimeout(function() {ACC.webquote.updateValue(url);}, 10000)
+			}
+		});
+	},
+
+	updateShippingInstruction: function () {
+		$(document).on("blur",'#shippingInstruction', function (){
+			var data = encodeURIComponent(this.value),
+				url = "/updateAdditionalText?text=" + data + "&textPosition=SHIPPING_INSTRUCTION";
+
+			ACC.webquote.updateValue(url);
+		});
+
+		$(document).on("keyup",'#shippingInstruction', function (){
+			var data = encodeURIComponent(this.value),
+				url = "/updateAdditionalText?text=" + data + "&textPosition=SHIPPING_INSTRUCTION";
+
+			if (this.timer) clearTimeout(this.timer);
+
+			if (this.value) {
+				this.timer = setTimeout(function() {ACC.webquote.updateValue(url);}, 10000)
+			}
+		});
+	},
+
+	updatePrePurchase: function () {
+		$(document).on("blur",'#prePurchase', function (){
+			var data = encodeURIComponent(this.value),
+				url = "/updateAdditionalText?text=" + data + "&textPosition=PRE_PURCHASE";
+
+			ACC.webquote.updateValue(url);
+		});
+
+		$(document).on("keyup",'#prePurchase', function (){
+			var data = encodeURIComponent(this.value),
+				url = "/updateAdditionalText?text=" + data + "&textPosition=PRE_PURCHASE";
+
+			if (this.timer) clearTimeout(this.timer);
+
+			if (this.value) {
+				this.timer = setTimeout(function() {ACC.webquote.updateValue(url);}, 10000)
+			}
+		});
+	},
+
+	updatePriceExplanation: function () {
+		$(document).on("blur",'#startPriceApprovalWorkflowText', function (){
+			var data = encodeURIComponent(this.value);
+			var url = "/updateAdditionalText?text=" + data + "&textPosition=PRICE_EXPLANATION";
+
+			ACC.webquote.updateValue(url);
+		});
+
+		$(document).on("keyup",'#startPriceApprovalWorkflowText', function (){
+			var data = encodeURIComponent(this.value);
+			var url = "/updateAdditionalText?text=" + data + "&textPosition=PRICE_EXPLANATION";
+
+			if (this.timer) {
+				clearTimeout(this.timer);
+			}
+
+			if (this.value) {
+				this.timer = setTimeout(function() {ACC.webquote.updateValue(url);}, 10000)
+			}
+		});
+	},
+
+	updateDocumentCurrency: function () {
+		$(document).on("blur",'#documentCurrency', function (){
+			var data = encodeURIComponent(this.value),
+				url = "/updateDocumentCurrency?value=" + data + "&valueType=CURRENCY";
+			ACC.webquote.updateValue(url);
+		});
+		$(document).on("blur",'#exchangeRate', function (){
+			var data = encodeURIComponent(this.value),
+				url = "/updateDocumentCurrency?value=" + data + "&valueType=EXCHANGE_RATE";
+			ACC.webquote.updateValue(url);
+		});
+
+		$(document).on("keyup",'#documentCurrency', function (){
+			var data = encodeURIComponent(this.value),
+				url = "/updateDocumentCurrency?value=" + data + "&valueType=CURRENCY";
+
+			if (this.timer) clearTimeout(this.timer);
+
+			if (this.value) {
+				this.timer = setTimeout(function() {ACC.webquote.updateValue(url);}, 5000)
+			}
+		});
+		$(document).on("keyup",'#exchangeRate', function (){
+			var data = encodeURIComponent(this.value),
+				url = "/updateDocumentCurrency?value=" + data + "&valueType=EXCHANGE_RATE";
+
+			if (this.timer) clearTimeout(this.timer);
+
+			if (this.value) {
+				this.timer = setTimeout(function() {ACC.webquote.updateValue(url);}, 5000)
+			}
+		});
+	},
+
+	updateYText: function () {
+		$(document).on("blur",'.js_customYText', function () {
+			var data = encodeURIComponent(this.value),
+				pos = $(this).data('pos'),
+				url = "/updateYText?value=" + data + "&position=" + pos;
+
+			if (this.timer) clearTimeout(this.timer);
+			ACC.webquote.updateValue(url);
+		});
+
+		$(document).on("keyup",'.js_customYText', function () {
+			var data = encodeURIComponent(this.value),
+				pos = $(this).data('pos'),
+				url = "/updateYText?value=" + data + "&position=" + pos;
+
+			if (this.timer) clearTimeout(this.timer);
+
+			if (this.value) {
+				this.timer = setTimeout(function() {ACC.webquote.updateValue(url);}, 5000)
+			}
+		});
+	},
+
+	updateValue: function (url) {
+		$.ajax({
+			url: ACC.config.encodedContextPath + "/webquote" + url,
+			async: true,
+			method: "POST",
+		})
+	},
+
+	updateTextModule : function () {
+		$(document).on("change",'.js-text-modules :input', function (){
+			var data = "name=" + $(this).attr('id');
+			var url = "/updateTextModule";
+
+			if(this.checked) {
+				data = data + "&checked=true";
+			}
+
+			$.ajax({
+				url: ACC.config.encodedContextPath + "/webquote" + url,
+				async: true,
+				data: data,
+				method: "POST",
+			})
+		});
+	},
+
+	bindToggleDocumentCurrency : function () {
+		$(document).on("change",'.js_toggleDocumentCurrency', function () {
+			var $cb = $(this),
+				$dcTextFields = $cb.closest(".row").find('.js_documentCurrencyText'),
+				$updateBtn = $cb.closest(".row").find('#updateCurrencyBtn');
+			$dcTextFields.prop('readonly', !$cb.prop('checked'));
+			$updateBtn.prop('disabled', !$cb.prop('checked'));
+		});
+	},
+
+	// DiscountSalesTachometer
+	listItems :Array.from(document.querySelectorAll('.webquote-item__list--config-item')),
+	listItemsConfirmationPage: Array.from(document.querySelectorAll('.item__list--item')),
+
+	showTachometer: function(item){
+		if(item){
+			let tachometerCurrDp = item.querySelector('.js-currDp');
+			let	zrsp= item.querySelector('.js-zrsp');
+			let el1p = item.querySelector('.js-el1p');
+			let el2p = item.querySelector('.js-el2p');
+			let el3p = item.querySelector('.js-el3p');
+			if((tachometerCurrDp && tachometerCurrDp.value)&& (zrsp && zrsp.value) &&
+				(el1p && el1p.value) && (el2p && el2p.value) && (el3p && el3p.value)){
+				ACC.webquote.updateTachometer(tachometerCurrDp.value, zrsp.value, item.id, el1p.value, el2p.value, el3p.value)
+			}
+		}
+	},
+
+	notAValue: function(value) {
+		return (value === undefined || value === null );
+	},
+
+	updateTachometer: function(currDp, zrsp, itemId, el1p, el2p, el3p){
+		if(ACC.webquote.notAValue(currDp) || ACC.webquote.notAValue(zrsp) || ACC.webquote.notAValue(el1p) ||
+			ACC.webquote.notAValue(el2p) || ACC.webquote.notAValue(el3p)){
+			return
+		}
+
+		let escalationLevel1 = Math.abs(el1p);
+		let escalationLevel2 = Math.abs(el2p);
+		let escalationLevel3 = Math.abs(el3p);
+		let estimatedEscalationLevel4 = escalationLevel3 + escalationLevel1;
+
+		let endGreenArea = Number.parseFloat(escalationLevel1 * 50 / estimatedEscalationLevel4 - 0.2).toFixed(2);
+		let startYellowArea = (Number.parseFloat(0.4) + Number.parseFloat(endGreenArea)).toFixed(2);
+		let endYellowArea = Number.parseFloat(escalationLevel2 * 50 / estimatedEscalationLevel4 - 0.2).toFixed(2);
+		let startOrangeArea = (Number.parseFloat(0.4) + Number.parseFloat(endYellowArea)).toFixed(2);
+		let endOrangeArea = Number.parseFloat(escalationLevel3 * 50 / estimatedEscalationLevel4 - 0.3).toFixed(2);
+		let startRedArea = (Number.parseFloat(0.4) + Number.parseFloat(endOrangeArea)).toFixed(2);
+
+		let getPercentage = Number.parseFloat((currDp/zrsp)*100).toFixed(2);
+		let rpm = Number.parseFloat((100-getPercentage) * 50 / estimatedEscalationLevel4 * 3.6).toFixed(0);
+		if (rpm < 0) {
+			rpm = 0;
+		} else if (rpm > 180) {
+			rpm = 180;
+		}
+
+		let tachoRotation = rpm-90;
+		let styleElem = document.createElement('style');
+		document.head.appendChild(styleElem);
+		styleElem.innerHTML = "#js-tachometer-"+itemId +".tachometer::after {transform: rotate(" + tachoRotation +"deg) translateX(-50%)!important}\n#js-tachometer-background-"+itemId +".tachometer__background {background: conic-gradient(#3D9970 " + endGreenArea + "%, white " + endGreenArea + "% " + startYellowArea + "%, rgb(255, 204, 0) " + startYellowArea + "% " + endYellowArea + "%, white " + endYellowArea + "% " + startOrangeArea + "%, #FF8303 " + startOrangeArea + "% " + endOrangeArea + "%, white " + endOrangeArea + "% " + startRedArea + "%, rgb(220, 53, 69) " + startRedArea + "% 50%, white 50%)!important}";
+	},
+
+	bindPurchaseOrderNoField: function () {
+		var $purchaseOrderNumberRequired = $("#customerReference"),
+			$selectVkOrg = $('#vkOrg');
+
+		$purchaseOrderNumberRequired.on("blur keyup input", _.debounce(function (e) {
+			if (!$purchaseOrderNumberRequired.hasClass('js_required')) return;
+			var currValue = $purchaseOrderNumberRequired.val();
+			var url = $purchaseOrderNumberRequired.closest(".col").data('matchurl');
+			$.get({
+				url: url,
+				data: "purchaseOrderNumber=" + currValue,
+				success: function(data) {
+					var $option = $selectVkOrg.find("option[value='" + data.result + "']"),
+						$selCont = $selectVkOrg.closest('div'),
+						$phInput = $selCont.find('input#vkOrgLabel');
+					if (data.result && $option.length) {
+						$selectVkOrg.val(data.result).attr('name', 'vkOrgLabelDis').attr("disabled", true);
+						if ($phInput.length) {
+							$phInput.val(data.result)
+						} else {
+							$('<input>').attr({
+								type: 'hidden',
+								id: 'vkOrgLabel',
+								name: 'vkOrgLabel',
+								value: data.result
+							}).appendTo($selCont);
+						}
+					} else {
+						$selectVkOrg.attr('name', 'vkOrgLabel').attr("disabled", false);
+						$phInput.remove();
+					}
+				}
+			});
+		}, 500));
+	},
+
+	bindGenerateDocumentTemplateSelection: function(){
+		$(document).on("change","#dcsTemplateConfigForm select#id", function () {
+			$("#dcsTemplateConfigForm button.js-generate-document").enable();
+		});
+	},
+
+	bindDocumentGeneration: function () {
+		$("button.js-generate-document").click(function (event) {
+			const button = $(this);
+			button.prop("disabled", true);
+			button.toggleClass("loading");
+
+			const errorAlert = $("#document-generation-error-message");
+
+			event.preventDefault();
+			const { action, method } = this.form;
+			const formData = new FormData(this.form);
+
+			fetch(action, {
+				method,
+				body: formData,
+				credentials: "include"
+			}).then(async response => {
+				if (response.status === 404) {
+					errorAlert.text(await response.text());
+					errorAlert.removeClass("hidden");
+					return;
+				}
+
+				if (!response.ok) {
+					errorAlert.text("Unexpected error occurred while generating document status: " + response.status);
+					errorAlert.removeClass("hidden");
+					return;
+				}
+
+				errorAlert.add("hidden");
+
+				const url = window.URL.createObjectURL(await response.blob());
+				const anchor = document.createElement("a");
+				anchor.href = url;
+				anchor.download = "FlenderQuote_" + formData.get("quoteNumber");
+
+				document.body.appendChild(anchor);
+				anchor.click();
+
+				window.URL.revokeObjectURL(url);
+				document.body.removeChild(anchor);
+			}).then(() => {
+				button.prop("disabled", false);
+				button.toggleClass("loading");
+			});
+		})
+	},
+
+	asyncOrderFetching: function () {
+		const loadOrderAsync = $(".load-order-async");
+		if (!loadOrderAsync.length) {
+			return;
+		}
+
+		const currentLocation = window.location.href;
+		const controller = new AbortController();
+
+		fetch(currentLocation + "/wait", {
+			credentials: 'include',
+			signal: controller.signal
+		}).then(() => {
+			window.location.href = currentLocation + "?sync=true";
+		});
+
+		window.addEventListener("beforeunload", () => {
+			controller.abort();
+		});
+	},
+
+	awaitAsyncSessionWebQuoteRestoration: function () {
+		const awaitRestoration = $(".async-session-webquote-restoration");
+		if (!awaitRestoration.length) {
+			return;
+		}
+
+		const url = awaitRestoration.data("url");
+		if (!url) {
+			return;
+		}
+
+		const controller = new AbortController();
+
+		fetch(url, {
+			credentials: 'include',
+			signal: controller.signal
+		}).then(() => {
+			awaitRestoration.hide();
+		});
+
+		window.addEventListener("beforeunload", () => {
+			controller.abort();
+		});
+	},
+	bindAddressCountryChange: function() {
+
+		const onChangeCallback = (countryIsoCode, formClass, regionSelect) => {
+
+			if(!countryIsoCode){
+				disable(regionSelect);
+				return;
+			}else{
+				enable(regionSelect);
+			}
+
+			const url = `/getRegion/${countryIsoCode}`;
+
+			const loadmask = $(`.${formClass} .loadMaskRegion`);
+			const regionSelectGroup = regionSelect.parent().parent();
+			regionSelectGroup.hide();
+			loadmask.show()
+			$.ajax({
+				url: ACC.config.encodedContextPath + "/webquote" + url,
+				async: true,
+				method: "GET",
+			}).done(function(resp) {
+				loadmask.hide();
+				regionSelectGroup.show();
+				regionSelect.empty();
+				if(resp.regionList.length === 0){
+					disable(regionSelect);
+				}else{
+					enable(regionSelect);
+				}
+				for(const region of resp.regionList){
+					const option = document.createElement('option');
+					option.innerText = region.name;
+					option.value = region.isocode;
+					regionSelect.append(option);
+				}
+			})
+		}
+
+		const disable = (queryElement) => {
+			queryElement.prop("disabled", true);
+		}
+		const enable = (queryElement) => {
+			queryElement.prop("disabled", false);
+		}
+
+		const arr = [ {
+			formClass: 'js-enduserAddressForm',
+			fieldPrefix: 'enduserAddress'
+		},
+		{
+			formClass: 'js-addressForm',
+			fieldPrefix: 'address'
+		}];
+
+		arr.forEach(element => {
+			$(`.${element.formClass} .loadMaskRegion`).hide()
+			const countrySelect = $(`.${element.formClass} select[id="${element.fieldPrefix}.country"]`);
+			const regionSelect = $(`.${element.formClass} select[id="${element.fieldPrefix}.region"]`);
+			if(!countrySelect.val()){
+				disable(regionSelect);
+			}
+			countrySelect.on("change", function(e){
+				onChangeCallback(e.target.value, element.formClass, regionSelect);
+			});
+
+		})
+	}
+};

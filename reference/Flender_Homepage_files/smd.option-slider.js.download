@@ -1,0 +1,104 @@
+ACC.optionSlider = {
+
+    _autoload: [
+        "owlCarouselOptionSliderComponent",
+    ],
+
+    optionsChosen: document.getElementById("option-slider-picked-options"),
+    headings: document.getElementsByClassName("option-slider-headline"),
+    options: [],
+
+    handleOption: function (btn) {
+        event.preventDefault();
+        // get heading of the buttons element
+        let optionName = btn.parentNode.querySelector(".option-slider-headline");
+
+        if (btn.dataset.type === "add") {
+            // change btn-text
+            btn.innerText = btn.dataset.removetext;
+            btn.dataset.type = "remove";
+            btn.parentNode.parentNode.classList.add("added");
+
+            // push option in array if its not allready there
+            !ACC.optionSlider.options.includes(optionName.innerText) &&
+            ACC.optionSlider.options.push(optionName.innerText);
+
+            // print each choice incl. new one
+            ACC.optionSlider.setBtnAndEvent(ACC.optionSlider.options);
+
+        } else {
+            // change btn-text
+            btn.innerText = btn.dataset.addtext;
+            btn.dataset.type = "add";
+            btn.parentNode.parentNode.classList.remove("added");
+
+            // loop and find the option
+            for (let i = 0; i <= ACC.optionSlider.options.length; i++) {
+                if (ACC.optionSlider.options[i] === optionName.innerText) {
+                    // delete option from options-array
+                    ACC.optionSlider.options.splice(i, 1);
+
+                    // print each choice and set event
+                    ACC.optionSlider.setBtnAndEvent(ACC.optionSlider.options);
+                }
+            }
+        }
+    },
+
+    deleteOption: function (btn) {
+        let headings = ACC.optionSlider.headings;
+
+        for (let i = 0; i <= ACC.optionSlider.options.length; i++) {
+            if (ACC.optionSlider.options[i] === event.target.innerText) {
+                // grab heading matches to clicked btn
+                let optiontab = Array.prototype.filter.call(headings, function (heading) {
+                    return heading.innerText === event.target.innerText;
+                });
+
+                // get btn of the Option-element
+                optiontab[0].parentNode.lastElementChild.innerText = optiontab[0].parentNode.lastElementChild.dataset.addtext;
+                optiontab[0].parentNode.lastElementChild.dataset.type = "add";
+                optiontab[0].parentNode.parentNode.classList.remove("added");
+
+                // delete option from options-array
+                ACC.optionSlider.options.splice(i, 1);
+
+                // print each choice without the deleted one
+                ACC.optionSlider.setBtnAndEvent(ACC.optionSlider.options);
+            }
+        }
+    },
+
+    setBtnAndEvent: function (btn) {
+        // reset choices
+        ACC.optionSlider.optionsChosen.innerHTML = "";
+
+        // print each choice
+        ACC.optionSlider.options.forEach((element, index) => {
+            ACC.optionSlider.optionsChosen.innerHTML += "<button  id='option" + (index + 1) + "' type='button' class='btn picked-option' onclick='ACC.optionSlider.deleteOption()' >" + element + "</button>";
+        });
+    },
+
+    owlCarouselOptionSliderComponent: function () {
+        $(".owl-carousel--option-slider-component").owlCarousel({
+            dots: true,
+            nav: true,
+            margin: 24,
+            responsiveClass: true,
+            dotsEach: 1,
+            mouseDrag: false,
+            responsive: {
+                0: {
+                    items: 1
+                },
+                900: {
+                    items: 2
+                },
+                1230: {
+                    items: 3
+                }
+            }
+        });
+    }
+}
+;

@@ -1,0 +1,48 @@
+ACC.highlightComponent = {
+
+    _autoload: [
+        "bindGridGallery",
+        "bindMobileGallery"
+    ],
+
+    bindGridGallery: function () {
+        $(".highlight-grid--item").colorbox({
+                rel: 'highlight-grid--item',
+                width: "100%",
+                height: "100%",
+                scrolling: false,
+                current: '{current} / {total}',
+                close: '',
+                inline: true,
+                title: function () {
+                    return $(this).data('title');
+                },
+                onOpen: function () {
+                    $("#colorbox").addClass("grid-gallery");
+                }
+            }
+        )
+        ;
+    },
+
+    bindMobileGallery: function () {
+        $(".owl-carousel--highlight-component").owlCarousel({
+            dots: true,
+            nav: true,
+            margin: 24,
+            responsiveClass: true,
+            dotsEach: 1,
+            responsive: {
+                0: {
+                    items: 1
+                },
+                900: {
+                    items: 1
+                },
+                1230: {
+                    items: 1
+                }
+            }
+        });
+    }
+}

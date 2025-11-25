@@ -1,0 +1,161 @@
+ACC.quizComponent = {
+
+    _autoload: [
+        "initQuiz",
+        "bindBackButton"
+    ],
+
+    jobs: [],
+    quiz: {},
+    quizLength: 0,
+    quizProgressCount: 1,
+
+    initQuiz: function () {
+        var quizComponent = document.getElementsByClassName("quiz-component-wrapper");
+        if (quizComponent.length > 0) {
+            ACC.quizComponent.bindAnswerLinks();
+        }
+    },
+
+    bindAnswerLinks: function () {
+        $(document).on("click", '.js-quiz-answer', function (e) {
+                e && e.preventDefault();
+                if (this.hasAttribute('data-quiz')) {
+                    if (this.getAttribute('data-quiz') === "quiz1") {
+                        ACC.quizComponent.quiz = quiz1;
+                        ACC.quizComponent.quizLength = Object.keys(ACC.quizComponent.quiz).length
+                    } else {
+                        ACC.quizComponent.quiz = quiz2;
+                        ACC.quizComponent.quizLength = Object.keys(ACC.quizComponent.quiz).length
+                    }
+                }
+
+                if (this.hasAttribute('data-question')) {
+                    var questionIndex = this.getAttribute('data-question');
+
+                    // set progress
+                    ACC.quizComponent.quizProgressCount = (Number(questionIndex) + 2);
+
+                    //set quiz length
+                    if (this.classList.contains("js-quiz-answer1") && Number(questionIndex) === 0 && ACC.quizComponent.quiz[Number(questionIndex)].quantity1.length) {
+                        ACC.quizComponent.quizLength = ACC.quizComponent.quiz[Number(questionIndex)].quantity1
+                    } else if (this.classList.contains("js-quiz-answer2") && Number(questionIndex) === 0 && ACC.quizComponent.quiz[Number(questionIndex)].quantity2.length) {
+                        ACC.quizComponent.quizLength = ACC.quizComponent.quiz[Number(questionIndex)].quantity2
+                    }
+
+                    //add jobs
+                    if (this.classList.contains("js-quiz-answer1") && ACC.quizComponent.quiz[this.getAttribute('data-question')].jobs.length) {
+                        ACC.quizComponent.addJobs(this.getAttribute('data-question'));
+                    }
+
+                    if (Number(ACC.quizComponent.quizLength) === Number(questionIndex) + 1) {
+                        ACC.quizComponent.createJobsHTML();
+                        return false;
+                    }
+
+                    ACC.quizComponent.createNextQuestionHTML(ACC.quizComponent.quiz[Number(questionIndex) + 1]);
+                } else {
+                    ACC.quizComponent.createNextQuestionHTML(ACC.quizComponent.quiz[0]);
+                }
+
+                if (ACC.quizComponent.quizProgressCount === 2) {
+                    ACC.quizComponent.showBackButton();
+                }
+
+                ACC.quizComponent.showProgress();
+            }
+        );
+    },
+
+    createNextQuestionHTML: function (data) {
+        var nextQuestionHTML = "<p>" + data.question + "</p><div class=\"linkbox\"><a href=\"#\" class=\"btn btn-primary js-quiz-answer js-quiz-answer1\" data-question=\"" + data.index + "\">" + data.answer1 + "</a><a href=\"#\" class=\"btn btn-primary js-quiz-answer js-quiz-answer2\" data-question=\"" + data.index + "\">" + data.answer2 + "</a></div>";
+        var questionElement = document.querySelector(".quiz-question");
+        questionElement.innerHTML = nextQuestionHTML;
+    },
+
+    createPrevQuestionHTML: function (data) {
+        var prevQuestionHTML = "<p>" + data.question + "</p><div class=\"linkbox\"><a href=\"#\" class=\"btn btn-primary js-quiz-answer js-quiz-answer1\" data-question=\"" + data.index + "\">" + data.answer1 + "</a><a href=\"#\" class=\"btn btn-primary js-quiz-answer js-quiz-answer2\" data-question=\"" + data.index + "\">" + data.answer2 + "</a></div>";
+        var questionElement = document.querySelector(".quiz-question");
+        questionElement.innerHTML = prevQuestionHTML;
+    },
+
+    addJobs: function (job) {
+        ACC.quizComponent.jobs.push(job);
+    },
+
+    removeJobs: function (job) {
+        var removeJob = job.toString();
+        ACC.quizComponent.jobs = ACC.quizComponent.jobs.filter(function (item) {
+            return item !== removeJob;
+        });
+    },
+
+    createJobsHTML: function () {
+        var jobsHTML = "";
+
+        if (ACC.quizComponent.jobs.length) {
+            jQuery.each(ACC.quizComponent.jobs, function () {
+                jQuery.each(ACC.quizComponent.quiz[this].jobs, function () {
+                    var jobLink = "<a href=\"" + this.jobLink + "\" class=\"quiz-jobs-found\" target=\"_blank\">" + this.jobName + "</a>";
+                    var duplicate = jobsHTML.includes(jobLink);
+                    if (!duplicate) jobsHTML += jobLink;
+                });
+            });
+        } else {
+            var noJobsFoundElement = document.querySelector(".no-jobs-found");
+            noJobsFoundElement.style.display = "block";
+        }
+
+        var headerElement = document.querySelector(".quiz-header--result");
+        headerElement.style.display = "block";
+        var headerElement = document.querySelector(".quiz-header");
+        headerElement.style.display = "none";
+        var quizProgress = document.querySelector(".quiz-progress-wrapper");
+        quizProgress.style.display = "none";
+        var questionElement = document.querySelector(".quiz-question");
+        questionElement.style.display = "none";
+        var jobsElement = document.querySelector(".quiz-jobs");
+        jobsElement.innerHTML = jobsHTML;
+    },
+
+    showProgress: function () {
+        var quizProgress = document.querySelector(".quiz-progress");
+        var stringWithPlaceholders = quizProgress.getAttribute('data-placeholder');
+        var replacements = {
+            progress: ACC.quizComponent.quizProgressCount,
+            total: ACC.quizComponent.quizLength,
+        };
+
+        var string = stringWithPlaceholders.replace(/{\w+}/g, function (placeholderWithDelimiters) {
+            var placeholderWithoutDelimiters = placeholderWithDelimiters.substring(1, placeholderWithDelimiters.length - 1);
+            var stringReplacement = replacements[placeholderWithoutDelimiters] || placeholderWithDelimiters;
+            return stringReplacement;
+        });
+
+        quizProgress.innerHTML = string;
+    },
+
+    bindBackButton: function () {
+        $(document).on("click", '.quiz-back', function (e) {
+            e && e.preventDefault();
+
+            if (ACC.quizComponent.quizProgressCount >= 2) {
+                var quizAnswer = document.querySelector(".js-quiz-answer");
+                var questionIndex = quizAnswer.getAttribute('data-question');
+                ACC.quizComponent.createPrevQuestionHTML(ACC.quizComponent.quiz[Number(questionIndex) - 1]);
+                ACC.quizComponent.quizProgressCount = (Number(questionIndex));
+                ACC.quizComponent.removeJobs(questionIndex - 1);
+
+                if (ACC.quizComponent.quizProgressCount === 1) {
+                    this.style.visibility = "hidden";
+                }
+            }
+            ACC.quizComponent.showProgress();
+        });
+    },
+
+    showBackButton: function () {
+        var quizBack = document.querySelector(".quiz-back");
+        quizBack.style.visibility = "visible";
+    }
+}

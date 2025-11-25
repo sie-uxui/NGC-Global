@@ -1,0 +1,349 @@
+ACC.productDetail = {
+
+    _autoload: [
+        "initPageEvents",
+        "bindVariantOptions",
+        "ensureFormat",
+        "bindSaveUserProductConfigurationPopup",
+        "bindSubmitUserProductConfigurationPopup",
+        "checkArchivedState",
+        "bindAddSupportTicket"
+    ],
+
+    ensureFormat: function () {
+        document.querySelectorAll(".container.spicecomponentrow .product-details.page-title.component h3 span.code")
+            .forEach(codeSpan => codeSpan.innerText = codeSpan.innerText.replace(/^0+/, ""));
+    },
+
+    checkQtySelector: function (self, mode) {
+        var $qtySelector = $(document).find(self).parents(".js-qty-selector");
+        var input = $qtySelector.find(".js-qty-selector-input");
+        var floatingPoint = input.data("floatingPoint");
+        var inputVal = floatingPoint ? parseFloat(input.val()) : parseInt(input.val());
+        var max = input.data("max");
+        var minusBtn = $qtySelector.find(".js-qty-selector-minus");
+        var plusBtn = $qtySelector.find(".js-qty-selector-plus");
+        var spiceCmpQty = $(document).find('.spicecomponentrow').find('.js-qty-component');
+
+        $qtySelector.find(".btn").removeAttr("disabled");
+
+        if (mode === "minus") {
+            if (inputVal - 1 > 0) {
+                ACC.productDetail.updateQtyValue(self, inputVal - 1, spiceCmpQty);
+                if (inputVal - 1 <= 1) {
+                    minusBtn.attr("disabled", "disabled")
+                }
+            } else {
+                minusBtn.attr("disabled", "disabled")
+            }
+        } else if (mode === "reset") {
+            ACC.productDetail.updateQtyValue(self, 1, spiceCmpQty);
+        } else if (mode === "plus") {
+            if (max === "FORCE_IN_STOCK") {
+                ACC.productDetail.updateQtyValue(self, inputVal + 1, spiceCmpQty);
+            } else if (inputVal + 1 <= max) {
+                ACC.productDetail.updateQtyValue(self, inputVal + 1, spiceCmpQty);
+                if (inputVal + 1 >= max - 1) {
+                    plusBtn.attr("disabled", "disabled")
+                }
+            } else {
+                plusBtn.attr("disabled", "disabled")
+            }
+        } else if (mode === "input") {
+            if (!input.val().endsWith(".")) {
+                if (inputVal <= 0) {
+                    ACC.productDetail.updateQtyValue(self, 1, spiceCmpQty);
+                    minusBtn.attr("disabled", "disabled");
+                } else if (inputVal <= 1) {
+                    ACC.productDetail.updateQtyValue(self, inputVal, spiceCmpQty);
+                    minusBtn.attr("disabled", "disabled");
+                } else if (max === "FORCE_IN_STOCK" && inputVal > 0) {
+                    ACC.productDetail.updateQtyValue(self, inputVal, spiceCmpQty);
+                } else if (inputVal >= max - 1) {
+                    ACC.productDetail.updateQtyValue(self, inputVal, spiceCmpQty);
+                    plusBtn.attr("disabled", "disabled");
+                } else if (inputVal > max) {
+                    ACC.productDetail.updateQtyValue(self, max, spiceCmpQty);
+                    plusBtn.attr("disabled", "disabled");
+                }
+            }
+        } else if (mode === "focusout") {
+            if (isNaN(inputVal)) {
+                ACC.productDetail.updateQtyValue(self, 1, spiceCmpQty);
+                minusBtn.attr("disabled", "disabled");
+            }
+        }
+    },
+
+    updateQtyValue: function (self, value, spiceCmpQty) {
+        var input = $(document).find(self).parents(".js-qty-selector").find(".js-qty-selector-input");
+        var addtocartQty = $(document).find(self).parents(".addtocart-component").find("#addToCartForm").find(".js-qty-selector-input");
+        var configureQty = $(document).find(self).parents(".addtocart-component").find("#configureForm").find(".js-qty-selector-input");
+        var floatingPoint = input.data("floatingPoint");
+        var formattedValue = floatingPoint ? new Intl.NumberFormat('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 2}).format(value) : value;
+        input.val(formattedValue);
+        addtocartQty.val(formattedValue);
+        configureQty.val(formattedValue);
+
+        if (spiceCmpQty && spiceCmpQty.length) {
+            spiceCmpQty.each(function() {
+                var qtyField = $( this );
+                try {
+                    var initVal = parseInt(qtyField.attr('data-initqty'), 10) || 1;
+                    var mainVal = parseInt(value, 10);
+                    qtyField.html(initVal * mainVal)
+                } catch (e) {
+                    console.error("Error setting new value for component quantity!", e)
+                }
+            });
+        }
+    },
+
+    initPageEvents: function () {
+        var spiceCmpQty = $(document).find('.spicecomponentrow').find('.js-qty-component');
+
+        $('[data-toggle="tooltip"]').tooltip({html: true});
+
+        $(document).on("click", '.js-qty-selector .js-qty-selector-minus', function () {
+            ACC.productDetail.checkQtySelector(this, "minus");
+        })
+
+        $(document).on("click", '.js-qty-selector .js-qty-selector-plus', function () {
+            ACC.productDetail.checkQtySelector(this, "plus");
+        })
+
+        $(document).on("click", '.panel', function () {
+            $('.panel-top').has('a[aria-expanded="true"]').addClass('hidden');
+            $('.panel-top').has('a[aria-expanded="false"]').removeClass('hidden');
+        })
+
+        $(document).on("keydown", '.js-qty-selector .js-qty-selector-input', function (e) {
+
+            if (($(this).val() != " "
+                    // 0 - 9 || NUMPAD 0 - NUMPAD 9
+                    && ((e.which >= 48 && e.which <= 57) || (e.which >= 96 && e.which <= 105)))
+                // Backspace
+                || e.which == 8
+                // Delete
+                || e.which == 46
+                // Arrow Left
+                || e.which == 37
+                // Arrow Right
+                || e.which == 39
+                // Tab
+                || e.which == 9
+                // Decimal Point (only if floating point mode is activated)
+                || ($(e.target).data("floatingPoint") && (e.which == 190 || e.which == 110) && $(this).val().indexOf(".") < 0)) {
+            }
+            // Arrow Up || Plus
+            else if (e.which == 38 || e.which == 107) {
+                ACC.productDetail.checkQtySelector(this, "plus");
+            }
+            // Arrow Down || Minus
+            else if (e.which == 40 || e.which == 109) {
+                ACC.productDetail.checkQtySelector(this, "minus");
+            } else {
+                e.preventDefault();
+            }
+        })
+
+        $(document).on("keyup", '.js-qty-selector .js-qty-selector-input', function (e) {
+            ACC.productDetail.checkQtySelector(this, "input");
+
+        })
+
+        $(document).on("focusout", '.js-qty-selector .js-qty-selector-input', function (e) {
+            ACC.productDetail.checkQtySelector(this, "focusout");
+        })
+
+        $(".variant-selector #Size").change(function () {
+            changeOnVariantOptionSelection($("#Size option:selected"));
+        });
+
+        $("#variant").change(function () {
+            changeOnVariantOptionSelection($("#variant option:selected"));
+        });
+
+        $(".selectPriority").change(function () {
+            window.location.href = $(this[this.selectedIndex]).val();
+        });
+
+        function changeOnVariantOptionSelection(optionSelected) {
+            window.location.href = optionSelected.attr('value');
+        }
+
+        $(".infoBox a").tooltip({
+            content: function () {
+                return this.getAttribute("title");
+            },
+        });
+
+        // Mlfb Input Field Detach / AppendTo last Element
+        if ($("#mlfbInput")) {
+            var mlfbInput = $("#mlfbInput").detach();
+            mlfbInput.appendTo(".spiceproductoverviewactions");
+        }
+
+        const componentInfo = $(".component-info");
+
+        componentInfo.on("shown.bs.collapse", event => {
+            const componentId = event.currentTarget.dataset.componentId;
+
+            if (!componentId) {
+                return;
+            }
+
+            const toggle = $(`.component-info-collapse-button[data-component-id="${componentId}"]`);
+            toggle.removeClass("glyphicon-triangle-right");
+            toggle.addClass("glyphicon-triangle-bottom");
+        });
+
+        componentInfo.on("hide.bs.collapse", event => {
+            const componentId = event.currentTarget.dataset.componentId;
+
+            if (!componentId) {
+                return;
+            }
+
+            const toggle = $(`.component-info-collapse-button[data-component-id="${componentId}"]`);
+            toggle.removeClass("glyphicon-triangle-bottom");
+            toggle.addClass("glyphicon-triangle-right");
+        });
+    },
+
+    bindVariantOptions: function () {
+        ACC.productDetail.bindCurrentStyle();
+        ACC.productDetail.bindCurrentSize();
+        ACC.productDetail.bindCurrentType();
+    },
+
+    bindCurrentStyle: function () {
+        var currentStyle = $("#currentStyleValue").data("styleValue");
+        var styleSpan = $(".styleName");
+        if (currentStyle != null) {
+            styleSpan.text(": " + currentStyle);
+        }
+    },
+
+    bindCurrentSize: function () {
+        var currentSize = $("#currentSizeValue").data("sizeValue");
+        var sizeSpan = $(".sizeName");
+        if (currentSize != null) {
+            sizeSpan.text(": " + currentSize);
+        }
+    },
+
+    bindCurrentType: function () {
+        var currentSize = $("#currentTypeValue").data("typeValue");
+        var sizeSpan = $(".typeName");
+        if (currentSize != null) {
+            sizeSpan.text(": " + currentSize);
+        }
+    },
+
+    showChooseUserProductConfigurationPopupIfPossible: function (event, formId) {
+        event && event.preventDefault();
+        $configureForm = $(formId);
+        if ($configureForm.data('show-popup')) {
+
+            var popupTitle = $configureForm.data("title"),
+                code = $configureForm.data('code');
+
+            ACC.colorbox.open(popupTitle, {
+                inline: true,
+                width: 800,
+                height: false,
+                href: "#popup_user_product_configuration_" + code,
+                className: "user-product-configuration-popup",
+                onComplete: function () {
+                    $(this).colorbox.resize();
+                }
+            });
+        } else {
+            $configureForm.submit();
+        }
+    },
+
+    bindSaveUserProductConfigurationPopup: function () {
+        $(document).on("click", ".saveuserproductconfiguration .js-save-user-product-configuration", function (e) {
+            var code = $(this).data("code"),
+                form = $(document).find('#saveUserProductConfigurationForm-' + code),
+                isUserProductConfigurationEmpty = form.find('input[name=userProductConfiguration]').val() === "";
+
+            if (isUserProductConfigurationEmpty) {
+                e && e.preventDefault();
+                var popupTitle = $(this).data("title");
+
+                ACC.colorbox.open(popupTitle, {
+                    inline: true,
+                    width: 800,
+                    height: false,
+                    href: "#popup_save_user_product_configuration_" + code,
+                    className: "save-user-product-configuration-popup",
+                    onComplete: function () {
+                        $(this).colorbox.resize();
+                    }
+                });
+                return false;
+            }
+            return true;
+        })
+    },
+
+    bindSubmitUserProductConfigurationPopup: function () {
+        $(document).on("submit", ".save-user-product-configuration-form", function (e) {
+            var code = $(this).data("code"),
+                isUserProductConfigurationEmpty = $(this).find('select[name=userProductConfiguration]').val() === "";
+
+            if (!isUserProductConfigurationEmpty) {
+                var userProductConfigurationName = $(this).find('select[name=userProductConfiguration]').find('option:selected').text(),
+                    confirmQuestion = $(this).data("confirm-question");
+                confirmQuestion = confirmQuestion.replace("###", userProductConfigurationName);
+                if (confirm(confirmQuestion)) {
+                    return true;
+                } else {
+                    e && e.preventDefault();
+                    return false;
+                }
+            }
+            return true;
+        });
+    },
+
+    saveUserProductConfigurationName: function (code) {
+        const userConfigurationSaveForm = $('#saveUserProductConfigurationForm-' + code);
+        const name = $('#popupSaveUserProductConfigurationName-' + code).val();
+
+        if (!name) {
+            return;
+        }
+
+        const configurations =
+            Array.from(userConfigurationSaveForm.find(".saved-configuration-selector .smd-select-item"))
+                .map(e => $(e).data("content") ?? "");
+
+        if (configurations.includes(name)) {
+            alert("Configuration with this name already exists");
+            return;
+        }
+
+        userConfigurationSaveForm[0].elements["name"].value = name;
+        userConfigurationSaveForm[0].submit();
+    },
+
+    checkArchivedState: function () {
+        const url = new URL(window.location);
+        if (!url.searchParams.get("archived")) {
+            return;
+        }
+
+        url.searchParams.delete("archived");
+        window.history.replaceState({}, document.title, url);
+    },
+
+    bindAddSupportTicket: function () {
+        $(".js-add-support-ticket").click(function () {
+           window.location.href = $(this).attr("href");
+        });
+    }
+};

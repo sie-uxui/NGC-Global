@@ -1,0 +1,37 @@
+ACC.productbulkquery = {
+
+	_autoload: [
+		["bindParameterPopupClick", $(".page-ProductBulkQueryLandingPage").length]
+	],
+
+	bindParameterPopupClick: function () {
+		$(".js-bulk-query-parameter-popup").click(function (e) {
+			e.preventDefault();
+
+			var url = $(this).attr('href'),
+				popupTitle = $(this).data('parameter-popup-title'),
+				popupTitleHtml = ACC.common.encodeHtml(popupTitle);
+
+			$.get(url, undefined, undefined, 'html').done(function (data) {
+				ACC.colorbox.open(popupTitleHtml, {
+					html: data,
+					width: 700,
+					onComplete: function () {
+						ACC.common.refreshScreenReaderBuffer();
+						ACC.productbulkquery.bindPriceDeterminationDate();
+					},
+					onClosed: function () {
+						ACC.common.refreshScreenReaderBuffer();
+					}
+				});
+			});
+		});
+	},
+
+	bindPriceDeterminationDate: function () {
+		var item = $('.js_priceDeterminationDate');
+		item.each(function () {
+			ACC.global.setupDatePicker($(this));
+		});
+	}
+}

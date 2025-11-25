@@ -1,0 +1,274 @@
+ACC.productcomparison = {
+
+    _autoload: [
+        "bindProductCountBadge",
+        "bindShowRemoveAllProductsConfirmation",
+        "bindRemoveProductLink",
+        "loadTemporaryProductComparison",
+        "handlePagination"
+    ],
+
+    bindProductCountBadge: function() {
+        if ($(document).find('.productcomparisonlink .js_product-count').length) {
+            ACC.productcomparison.updateProductCountBadge();
+        }
+    },
+
+    bindShowRemoveAllProductsConfirmation: function ()
+    {
+        $(document).on("click", ".js_remove-all-entries-confirmation", function (e)
+        {
+            e && e.preventDefault();
+            var popupTitle = $(this).data("title"); // attribute 'title' provides no value!?
+
+            ACC.colorbox.open(popupTitle,{
+                inline: true,
+                width: 450,
+                height: false,
+                href: "#popup_confirm_all_products_removal",
+                onComplete: function ()
+                {
+                    $(this).colorbox.resize();
+                }
+            });
+            return false;
+        })
+
+        $(document).on("click", ".js_remove-all-products", function (e)
+        {
+            e && e.preventDefault();
+            $('#product-comparison-removal-form').submit();
+        })
+    },
+
+    bindRemoveProductLink: function ()
+    {
+        $(document).on("click", ".js_remove-entry", function (e)
+        {
+            e && e.preventDefault();
+            $(this).closest('form').submit();
+        })
+    },
+
+    addToComparisonList: function(data, $target, cb) {
+        var url = '';
+        if ($target.is('a')) {
+            url = $target.attr('href');
+        }
+
+        $.ajax({
+            url: url,
+            method: 'POST',
+            dataType: 'json',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function (cartResult, statusText, xhr, formElement) {
+                ACC.product.displayAddToCartPopup(cartResult, statusText, xhr, formElement);
+            }
+        });
+
+
+        cb && cb();
+    },
+
+    updateProductCountBadge: function () {
+        const $badge = $(document).find('.productcomparisonlink .js_product-count');
+        const controller = new AbortController();
+
+        fetch($badge.data('url'), {
+            credentials: 'include',
+            signal: controller.signal
+        })
+            .then(response => response.json())
+            .then(response => {
+                if (response.count <= 0) {
+                    $badge.text('');
+                    $badge.hide();
+                    return;
+                }
+
+                $badge.text(response.count);
+                $badge.show();
+            });
+
+        window.addEventListener("beforeunload", () => {
+            controller.abort();
+        });
+    },
+
+    /*
+    loadTemporaryProductComparison: function () {
+        if($("#temporaryProductComparisonData").length) {
+            var data = JSON.parse(document.getElementById("temporaryProductComparisonData").textContent);
+
+            $.ajax({
+                url: ACC.config.encodedContextPath + "/temporary-product-comparison-entries",
+                async: true,
+                data: data,
+                method: "POST",
+                success: function (data) {
+                    $(".temporary-product-comparison--form").html(data);
+                }
+            })
+        }
+    }
+    */
+
+    loadTemporaryProductComparison: function () {
+        if($("#temporaryProductComparisonForm").length) {
+            $("#temporaryProductComparisonForm").submit();
+        }
+    },
+
+    displaySubsection: function (max, offset) {
+        let columns = 0;
+        const tableHead = $(".tab-pane.active .comparison-table thead tr th");
+
+        tableHead.each(function (index) {
+            if (!index) {
+                return;
+            }
+
+            columns++;
+        });
+
+        if (!columns) {
+            return;
+        }
+
+        if (max > columns) {
+            max = columns;
+        }
+
+        if (offset + max > columns) {
+            offset = columns - max;
+        }
+
+        const hideCells = function (index) {
+            if (!index) {
+                return;
+            }
+
+            const currentIndex = index - 1;
+
+            if (currentIndex < offset || currentIndex >= offset + max) {
+                $(this).addClass("hidden");
+                return;
+            }
+
+            $(this).removeClass("hidden");
+        };
+
+        tableHead.each(hideCells);
+        $(".tab-pane.active .comparison-table tfoot tr td").each(hideCells);
+        $(".tab-pane.active .comparison-table tbody tr").each(function () {
+            $(this).find("td").each(hideCells);
+        });
+    },
+
+    handlePagination: function (registerButtons = true) {
+        if (!$(".page-temporary-product-comparison-entries, .page-product-comparison").length) {
+            return;
+        }
+
+        let columns = 0;
+        const tableHead = $(".tab-pane.active .comparison-table thead tr th");
+
+        tableHead.each(function (index) {
+            if (!index) {
+                return;
+            }
+
+            columns++;
+        });
+
+        let max = 5;
+        switch(true) {
+            case window.innerWidth < 992:
+                max = 1;
+                break;
+            case window.innerWidth < 1500:
+                max = 3;
+                break;
+        }
+
+        ACC.productcomparison.displaySubsection(max, 0);
+
+        const buttonNext = $(".js-comparison-next");
+        const buttonPrevious = $(".js-comparison-previous");
+
+        buttonNext.data("max-pages", max);
+        buttonNext.removeClass("disabled");
+        buttonPrevious.addClass("disabled");
+
+        if (max >= columns) {
+            buttonNext.addClass("disabled");
+        }
+
+        if (!registerButtons) {
+            return;
+        }
+
+        $(window).on("resize", function () {
+            ACC.productcomparison.handlePagination(false);
+        });
+
+        $("#productComparisonContent .nav-item a.nav-link").click(function () {
+            ACC.productcomparison.handlePagination(false);
+        });
+
+        const getCurrentPage = () => {
+            let pageFound = false;
+            let page = 0;
+
+            $(".tab-pane.active .comparison-table thead tr th").each(function (index) {
+                if (!index || pageFound) {
+                    return;
+                }
+
+                if (!$(this).hasClass("hidden")) {
+                    pageFound = true;
+                    return;
+                }
+
+                page++;
+            });
+
+            return page;
+        };
+
+        const hasReachedLastPage = () => !$(".tab-pane.active .comparison-table thead tr th").last().hasClass("hidden");
+        const getCurrentMaxPages = () => parseInt(buttonNext.data("max-pages"));
+
+        buttonNext.click(function () {
+            const nextPage = getCurrentPage() + 1;
+            ACC.productcomparison.displaySubsection(getCurrentMaxPages(), nextPage);
+
+            if (hasReachedLastPage()) {
+                buttonNext.addClass("disabled");
+            }
+
+            if (getCurrentPage() > 0) {
+                buttonPrevious.removeClass("disabled");
+            }
+        });
+
+        buttonPrevious.click(function () {
+            const previousPage = getCurrentPage() - 1;
+
+            if (previousPage < 0) {
+                return;
+            }
+
+            ACC.productcomparison.displaySubsection(getCurrentMaxPages(), previousPage);
+
+            if (!hasReachedLastPage()) {
+                buttonNext.removeClass("disabled");
+            }
+
+            if (getCurrentPage() === 0) {
+                buttonPrevious.addClass("disabled");
+            }
+        });
+    }
+}

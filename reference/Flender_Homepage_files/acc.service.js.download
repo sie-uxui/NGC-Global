@@ -1,0 +1,49 @@
+ACC.service = {
+
+  _autoload: [
+      "initScrollEvent",
+      "bindClickOnTiles",
+  ],
+
+
+  initScrollEvent: function () {
+    var section = ACC.service.getUrlParameter('section');
+    if(section) ACC.service.scrollToParam(section);
+  },
+  
+  bindClickOnTiles: function () {
+  
+    $('.smdserviceslot .fl-box__hover').on("click", function(e){
+      history.pushState('data', '', this.href);
+      
+      var section = ACC.service.getUrlParameter('section');
+      if(section) ACC.service.scrollToParam(section);
+      
+      e.stopPropagation();
+      e.preventDefault();
+    });
+  },
+
+  scrollToParam: function (section) { 
+    $('html, body').animate({
+        scrollTop: $("#"+section).offset().top - 160
+    }, 800);
+  },  
+
+  getUrlParameter: function (sParam) {
+    var sPageURL = decodeURIComponent(window.location.search.substring(1)),
+        sURLVariables = sPageURL.split('&'),
+        sParameterName,
+        i;
+
+    for (i = 0; i < sURLVariables.length; i++) {
+        sParameterName = sURLVariables[i].split('=');
+
+        if (sParameterName[0] === sParam) {
+            return sParameterName[1] === undefined ? true : sParameterName[1];
+        }
+    }
+  }
+
+
+};

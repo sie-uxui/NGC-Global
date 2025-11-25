@@ -1,0 +1,337 @@
+/*
+ * [y] hybris Platform
+ *
+ * Copyright (c) 2018 SAP SE or an SAP affiliate company. All rights reserved.
+ *
+ * This software is the confidential and proprietary information of SAP
+ * ("Confidential Information"). You shall not disclose such Confidential
+ * Information and shall use it only in accordance with the terms of the
+ * license agreement you entered into with SAP.
+ */
+ACC.customerticketingaddon = {
+
+    _autoload: [
+        "onStatusChange",
+        "bindMessageArea",
+        "toggleAllMessages",
+        "postNewMessage",
+        "onFileChosen",
+        "bindFileRemove",
+        "setCompanyName",
+        "bindTicketAddActions",
+        "bindInputTracking",
+        "bindTicketUpdateActions"
+    ],
+
+
+    disableMessage: function(_this){
+        var currentTicketStatus = $('input[id="currentTicketStatus"]').val();
+        var selectedStatus = $(_this).val();
+
+        if((currentTicketStatus === 'COMPLETED' && selectedStatus === 'COMPLETED') || (currentTicketStatus === 'CLOSED' && selectedStatus === 'CLOSED')) {
+            $('textarea[id="message"]').attr('disabled','disabled');
+            $('button[id="updateTicket"]').attr('disabled','disabled');
+        } else {
+            $('textarea[id="message"]').removeAttr('disabled');
+        }
+    },
+
+    onStatusChange: function () {
+        $(document).on('change', '.js-add-message-status', function () {
+            ACC.customerticketingaddon.disableMessage(this);
+        });
+    },
+
+    onFileChosen: function () {
+        $(document).on('change', '#supportTicketForm input[name=files], #salesforceCaseForm input[type=file]', function () {
+            ACC.customerticketingaddon.clearAlerts();
+            if (!ACC.customerticketingaddon.isSelectedFilesValid(this))
+            {
+                var message = "<span style='color:red'>" + $('#file-too-large-message').text() + "</span>";
+                $("#supportTicketForm, #salesforceCaseForm").find(".js-file-upload__file-name, .file-upload__file-name").last().html(message);
+            }
+        });
+    },
+
+    bindFileRemove: function () {
+        $(document).on('click', '.js-file-remove', function () {
+            var fileFieldId = $(this).data("file-field-id") + $(this).data("file-field-idx"),
+                $fileField = $("#" + fileFieldId),
+                $clearedFileField = $fileField.val('').clone(),
+                $row = $(this).closest(".row");
+
+            var $nextInputFiles = ACC.csvimport.getNextInputFiles();
+            $fileField.replaceWith($clearedFileField);
+            if ($nextInputFiles.length > 1) {
+                $clearedFileField.addClass("hidden");
+            } else {
+                $clearedFileField.removeClass("hidden");
+            }
+            $row.find(".js-file-upload .glyphicon-plus-sign").show();
+            $(this).closest(".file-upload__file-name").remove();
+            if (!$row.find(".file-upload__file-name:not(.hidden)").length) {
+                $row.find(".js-file-upload__file-none").removeClass('hidden');
+            }
+            return false;
+        });
+    },
+
+    setCompanyName: function () {
+    	var currentCategory = $("#responsibilityCode option:selected").val();
+
+    	if(currentCategory==="ACADEMY") $("#createTicket-companyName").val("-");
+    },
+
+    bindMessageArea: function () {
+        $(document).on('keyup', '.js-add-message', function () {
+            if($(this).val().length > 0) {
+                $('button[id="updateTicket"]').removeAttr('disabled');
+                $('#NotEmpty-supportTicketForm-message').hide();
+            } else {
+                $('button[id="updateTicket"]').attr('disabled','disabled');
+            }
+        });
+    },
+
+    toggleAllMessages: function() {
+        $('#ct-toggle-all-messages').on('click touchstart', function() {
+            $('.cts-msg-history-item:not(.ct-msg-visible)').show();
+            $(this).hide();
+        });
+    },
+
+    postNewMessage: function () {
+        var title = $('#ct-overlay-title').html();
+        $('.ct-add-new-msg-btn').on('click touchstart', function(e) {
+            e.preventDefault();
+            $.colorbox({
+                href: "#ct-add-new-msg",
+                maxWidth:"100%",
+                width: 525,
+                opacity:0.7,
+                title: title,
+                inline: true,
+                close: '<span class="glyphicon glyphicon-remove"></span>',
+                onOpen: function () {
+                    $('#ct-add-new-msg').fadeIn();
+                },
+                onComplete: function () {
+                    ACC.customerticketingaddon.disableMessage($('.js-add-message-status'));
+
+                    if (!$.trim($("#message").val())) {
+                    	  $('button[id="updateTicket"]').attr('disabled', 'disabled');
+                    }
+
+                    ACC.csvimport.changeFileUploadAppearance();
+                },
+                onCleanup: function () {
+                  $('#ct-add-new-msg').hide();
+                }
+            });
+        })
+    },
+
+    isSelectedFilesValid: function (selectedFiles) {
+        if (window.File && window.Blob) {
+            var fileMaxSize = $(selectedFiles).data('max-upload-size');
+            var totalSize = 0;
+
+            for (var i = 0; i < selectedFiles.files.length; ++i){
+                totalSize += selectedFiles.files[i].size;
+            }
+
+            if ($.isNumeric(fileMaxSize) && totalSize > parseFloat(fileMaxSize)) {
+                return false;
+            }
+        }
+
+        return true;
+    },
+
+    displayCustomerTicketingAlert: function (options) {
+        var alertTemplateSelector;
+
+        switch (options.type) {
+            case 'error':
+                alertTemplateSelector = '#global-alert-danger-template';
+                break;
+            case 'warning':
+                alertTemplateSelector = '#global-alert-warning-template';
+                break;
+            default:
+                alertTemplateSelector = '#global-alert-info-template';
+        }
+
+        if (typeof options.message !== 'undefined') {
+            $('#customer-ticketing-alerts').append($(alertTemplateSelector).tmpl({message: options.message}));
+        }
+
+        if (typeof options.messageId !== 'undefined') {
+            $('#customer-ticketing-alerts').append($(alertTemplateSelector).tmpl({message: $('#' + options.messageId).text()}));
+        }
+
+       $("html,body").animate({scrollTop: $("body").offset().top});
+    },
+
+    displayGlobalAlert: function (options) {
+        var alertTemplateSelector;
+
+        switch (options.type) {
+            case 'error':
+                alertTemplateSelector = '#global-alert-danger-template';
+                break;
+            case 'warning':
+                alertTemplateSelector = '#global-alert-warning-template';
+                break;
+            default:
+                alertTemplateSelector = '#global-alert-info-template';
+        }
+
+        if (typeof options.message !== 'undefined') {
+            $('#global-alerts').append($(alertTemplateSelector).tmpl({message: options.message}));
+        }
+
+        if (typeof options.messageId !== 'undefined') {
+            $('#global-alerts').append($(alertTemplateSelector).tmpl({message: $('#' + options.messageId).text()}));
+        }
+
+        $("html,body").animate({scrollTop: $("body").offset().top});
+    },
+
+    bindTicketAddActions: function () {
+        $(document).on('click', '#addTicket, #addSalesforceCase',
+            function (event) {
+            	event.preventDefault();
+
+                // honeypot validation: set field value
+                if(this.id === "addSalesforceCase") {
+                    var question2 = document.getElementById("question2");
+                    question2.value = "tryhard";
+                }
+
+                $("#addSalesforceCase").attr('disabled','disabled');
+
+                ACC.customerticketingaddon.formPostAction(
+        		function(){
+        			$.colorbox({
+        	            inline: true,
+        	            maxWidth: "100%",
+        	            opacity: 0.7,
+        	            width: "550px",
+        	            fixed: true,
+        	            close: '<span class="glyphicon glyphicon-remove"></span>',
+        	            title: $('#supportticket-sent-modal-title'),
+        	            href: $('#supportticket-sent-modal'),
+        	            onClosed: function () {
+        	            	window.location.reload();
+        	            }
+        	        });
+        		});
+            });
+    },
+
+    bindTicketUpdateActions: function () {
+        $(document).on('click', '#updateTicket',
+            function (event) {
+                event.preventDefault();
+
+                ACC.customerticketingaddon.formPostAction(function () { ACC.customerticketingaddon.navigateToUrl('?ticketUpdated=true'); });
+            });
+    },
+
+    navigateToUrl: function (url) {
+        window.location.replace(url);
+    },
+
+    navigateBackInHistory: function () {
+        window.history.go(-1);
+    },
+
+    formPostAction: function (successFunction) {
+
+        ACC.customerticketingaddon.clearAlerts();
+
+        var form;
+        if (document.getElementById("supportTicketForm")) {
+            form = document.getElementById("supportTicketForm");
+        } else if (document.getElementById("salesforceCaseForm")) {
+            form = document.getElementById("salesforceCaseForm");
+        } else {
+            form = document.getElementById("marketingConfirmationTicketForm");
+        }
+
+        var formData = new window.FormData(form);
+
+        $(form).find(".js-file-upload-limited").each(function() {
+            if (this.files && this.files.length) formData.append("files", this.files[0]);
+        });
+
+        $.ajax({
+            url: form.action,
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function () {
+                successFunction();
+                $("#addSalesforceCase").removeAttr('disabled');
+                // Tracking
+    			$(document).trigger('ste:form', {type:'contact', status:'sent', recipient:'general'});
+            },
+            error: function (jqXHR) {
+                $("#addSalesforceCase").removeAttr('disabled');
+                ACC.customerticketingaddon.processErrorResponse(jqXHR);
+            }
+        });
+    },
+
+    processErrorResponse: function (jqXHR) {
+        ACC.customerticketingaddon.clearAlerts();
+        if (document.getElementById("supportTicketForm")) {
+            grecaptcha.reset();
+        }
+        if (jqXHR.status === 400 && jqXHR.responseJSON) {
+
+            $.each(jqXHR.responseJSON, function() {
+                $.each(this, function(k, v) {
+                    var target = '#' + k;
+                    $(target).show();
+                    $(target).text(v);
+                    ACC.customerticketingaddon.displayGlobalAlert({type: 'error', message: v});
+                });
+            });
+
+            return;
+        }
+
+        ACC.customerticketingaddon.displayCustomerTicketingAlert({type: 'error', messageId: 'supporttickets-tryLater'});
+    },
+
+
+    bindInputTracking: function () {
+    	var executed = false;
+
+        $(".account-section-form .form-control").on("change keyup paste input", function(){
+            if (!executed) {
+                executed = true;
+                //Tracking
+                $(document).trigger('ste:form', {type:'contact', status:'open', recipient:'general'});
+            }
+        })
+    },
+
+    addHasErrorClass: function () {
+        $('#createTicket-message').parent().addClass('has-error');
+    },
+
+    clearAlerts: function () {
+        $('#customer-ticketing-alerts').empty();
+        $('#global-alerts').empty();
+        $('#NotEmpty-supportTicketForm-subject').hide();
+        $('#Size-supportTicketForm-message').hide();
+        $('#Size-supportTicketForm-subject').hide();
+        $('#createTicket-subject').parent().removeClass('has-error');
+        $('#NotEmpty-supportTicketForm-message').hide();
+        $('#createTicket-message').parent().removeClass('has-error');
+    }
+};

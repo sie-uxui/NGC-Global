@@ -1,0 +1,63 @@
+ACC.myquotes = {
+
+    _autoload: [
+        "bindNotValidPopup",
+        "bindRevalidateQuoteBtn",
+        "bindCreateCartFromQuoteBtn"
+    ],
+
+    bindNotValidPopup: function () {
+        $(document).on("click",'.js-open-not-valid-popup', function (e) {
+            e && e.preventDefault();
+            var $notValidPopupTitle = $('.quotenotvalid-popup-title-holder'),
+                $notValidPopupContent = $('.quotenotvalid-popup-content-holder');
+            if (!$notValidPopupTitle.length || !$notValidPopupContent.length) return;
+
+            var title = $notValidPopupTitle.html(),
+                content = $notValidPopupContent.html();
+
+            ACC.colorbox.open(title, {
+                html: content,
+                height: "auto",
+                maxHeight: "95%",
+                width: 700,
+                onComplete: function () {
+                    $(document).on("click", ".js-revalidate-quote-close-button", function (e) {
+                        e && e.preventDefault();
+                        ACC.colorbox.close();
+                    });
+                }
+            });
+        });
+    },
+
+    bindCreateCartFromQuoteBtn: function ()
+    {
+        $(document).on("click",'.js-create-cart-from-quote-button', function (e) {
+            e && e.preventDefault();
+            var $btn = $(this);
+            $spinner = $btn.find('.spinner');
+            $btn.addClass('disabled');
+            $spinner.show();
+
+            var $form = $('#createCartFromQuoteForm');
+            $form.submit();
+            return false;
+        });
+    },
+
+    bindRevalidateQuoteBtn: function ()
+    {
+        $(document).on("click",'.js-revalidate-quote-button', function (e) {
+            e && e.preventDefault();
+            var $btn = $(this),
+                $spinner = $btn.find('.spinner');
+            $btn.addClass('disabled');
+            $spinner.show();
+
+            var $form = $('#createCartFromQuoteForm');
+            $form.submit();
+            return false;
+        });
+    }
+}

@@ -1,0 +1,214 @@
+ACC.cas = {
+
+    _autoload: [
+        "bindDeleteSavedConfigurationButtons",
+        "bindSmdSelectInputs",
+        "bindReconfigure"
+    ],
+
+    bindDeleteSavedConfigurationButtons: function () {
+        $(".saved-configuration-selector")
+            .find(".delete-saved-config")
+            .click(function (event) {
+                event.stopPropagation();
+                const button = $(this);
+                const productCode = button.data("product-code");
+                const configurationId = button.data("configuration-id");
+                const configurationName = button.data("configuration-name");
+
+                const idInput = $(`#delete-cas-configuration-id-input_${productCode}`);
+                idInput.val(configurationId);
+
+                const popup = $(`#delete-cas-configuration-popup_${productCode}`);
+                popup.find(".popup-content-header").text(configurationName);
+
+                const title = popup.find(".popup-title").text();
+                const content = popup.find(".popup-content").html();
+
+                const selectQuery = button.data("close-smd-select");
+                if (selectQuery) {
+                    console.log(selectQuery);
+                    ACC.cas.closeSmdSelect($(selectQuery));
+                }
+
+                ACC.colorbox.open(title, {
+                    html: content,
+                    className: '',
+                    width: "600px",
+                    maxWidth: "600px",
+                    height: "400px",
+                    maxHeight: "400px",
+                    reposition: false
+                });
+            });
+    },
+
+    closeSmdSelect: function (element) {
+       const select = element instanceof Element || element instanceof Node ? $(element) : element;
+       const selectId = select.data("smd-select-id");
+
+       if (!select) {
+           return;
+       }
+
+       const dropdown = $(`.smd-select-options[data-smd-select-id="${selectId}"]`);
+       if (!dropdown.length) {
+           return;
+       }
+
+       const arrow = select.find(".smd-select-arrow");
+       if (!arrow.length) {
+           return;
+       }
+
+       arrow.removeClass("glyphicon-menu-up");
+       arrow.addClass("glyphicon-menu-down");
+       dropdown.hide();
+    },
+
+    bindSmdSelectInputs: function () {
+        $("div.smd-select").each(function () {
+            const select = $(this);
+            const selectId = Array.from(
+                crypto.getRandomValues(new Uint8Array(16)),
+                byte => byte.toString(36))
+                .join("");
+
+            select.attr("data-smd-select-id", selectId);
+            const name = select.data("name");
+            const selectedValue = select.data("value") ?? "";
+
+            select.prepend(`<input type="hidden" class="smd-select-value" name='${name}' value='${selectedValue ?? ""}'/>`);
+            if (!select.find("span.smd-select-label").length) {
+                select.prepend("<span class='smd-select-label'></span>")
+            }
+
+            select.append("<span class='smd-select-arrow glyphicon glyphicon-menu-down'></span>")
+
+            const input = select.find("input.smd-select-value");
+            const label = select.find("span.smd-select-label");
+            const arrow = select.find("span.smd-select-arrow");
+            const dropdown = select.find(".smd-select-options");
+            dropdown.attr("data-smd-select-id", selectId);
+
+            const items = dropdown.find(".smd-select-item");
+
+            select.add(label).add(arrow).click(function (event) {
+                event.stopPropagation();
+
+                if (dropdown.is(":visible")) {
+                    arrow.removeClass("glyphicon-menu-up");
+                    arrow.addClass("glyphicon-menu-down");
+                    dropdown.hide();
+                    return;
+                }
+
+                const rect = select.get(0).getBoundingClientRect();
+
+                $("body").append(dropdown);
+                dropdown.css({
+                    display: "block",
+                    top: rect.bottom + window.scrollY + 5,
+                    left: rect.left + window.scrollX,
+                    width: rect.width
+                });
+
+                arrow.removeClass("glyphicon-menu-down");
+                arrow.addClass("glyphicon-menu-up");
+            });
+
+            items.each(function () {
+                const item = $(this);
+                const value = item.data("value") ?? "";
+                const content = item.data("content") ?? item.html();
+
+                if (selectedValue !== value) {
+                    return;
+                }
+
+                label.html(content);
+            });
+
+            items.click(function () {
+                const item = $(this);
+                const value = item.data("value") ?? "";
+                const content = item.data("content") ?? item.html();
+
+                input.val(value);
+                label.html(content);
+                dropdown.hide();
+
+                arrow.removeClass("glyphicon-menu-up");
+                arrow.addClass("glyphicon-menu-down");
+            });
+
+            $(document).click(function (event) {
+                if (!select.is(event.target)
+                    && !label.is(event.target)
+                    && !arrow.is(event.target)
+                    && !dropdown.is(event.target)
+                    && dropdown.has(event.target).length === 0) {
+
+                    arrow.removeClass("glyphicon-menu-up");
+                    arrow.addClass("glyphicon-menu-down");
+                    dropdown.hide();
+                }
+            });
+
+            let lastSelectPosAndWidth = [-1, -1, -1];
+
+            setInterval(() => {
+                // Check for movement / resizing and adjust dropdown
+                if (!dropdown.parent().is("body")) {
+                    return;
+                }
+
+                const rect = select.get(0).getBoundingClientRect();
+                const posAndWidth = [rect.bottom + window.scrollY + 5, rect.left + window.scrollX, rect.width];
+                if (posAndWidth.every((value, i) => lastSelectPosAndWidth[i] === value)) {
+                    return;
+                }
+
+                dropdown.css({
+                    top: rect.bottom + window.scrollY + 5,
+                    left: rect.left + window.scrollX,
+                    width: rect.width
+                });
+
+                lastSelectPosAndWidth = posAndWidth;
+            }, 50);
+        });
+    },
+
+    bindReconfigure: function () {
+        const configuratorLoading = $("#configurator-loading-translation").text();
+        const configuratorLoadingText = $("#configurator-loading-text-translation").text();
+
+        const showLoadingPopup = () =>
+            ACC.colorbox.open(configuratorLoading, {
+                html: `<div id="documentShowcaseContent" class="col-lg-12" style="padding-left: 0">` +
+                    `<div class="spinner" style="display: contents">` +
+                    `<div class="bounce1"></div>` +
+                    `<div class="bounce2"></div>` +
+                    `<div class="bounce3"></div>` +
+                    `</div>` +
+                    `<div style="margin-top: 15px">${configuratorLoadingText}</div>` +
+                    `</div>`,
+                className: "document-showcase",
+                width: 1100,
+                height: "auto",
+                maxHeight: "600px",
+                reposition: false
+            });
+
+        $("#reconfigureProduct").click(function () {
+            showLoadingPopup();
+        });
+
+        $(".js_reconfigure-entry").click(function (event) {
+            event.preventDefault();
+            showLoadingPopup();
+            window.location.href = $(this).attr("href");
+        });
+    }
+}

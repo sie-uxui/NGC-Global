@@ -1,0 +1,93 @@
+ACC.priceElements = {
+
+    _autoload: [
+        "bindPriceElementsPopupLink"
+    ],
+
+	openPriceElementsPopup: function (posNo) {
+		var title = $('.priceelements-popup-title-holder-' + posNo).html();
+
+		ACC.colorbox.open(title,{
+			html: $('.priceelements-popup-content-holder-' + posNo).html(),
+			width: 700,
+			height: "auto",
+			maxHeight: "95%",
+			reposition: false,
+			className: 'price-elements',
+			onComplete: function(){
+				ACC.colorbox.resize();
+			}
+		});
+	},
+
+	bindPriceElementsPopupLink: function ()
+	{
+		$(document).on("click",'.item__price-elements', function (e) {
+			var $a = $(this);
+			ACC.priceElements.openPriceElementsPopup($a.data('pos-number'));
+			return false;
+		});
+	},
+
+	bindPriceElementsApply: function ()
+	{
+		$(document).on("click",'#applyPriceElementsChange', function (e) {
+			e && e.preventDefault();
+			var $formDiv = $(this).closest('.price-elements-form'),
+				elements = {
+					positionNumber:  $formDiv.data('pos-number'),
+					productCode: $formDiv.data('product-code'),
+					priceElements: []
+				};
+
+			$formDiv.find('input').each(function( index ) {
+				var $input = $(this);
+				elements.priceElements.push({
+					conditionType: $input.data('code'),
+					pos: $input.data('sequence'),
+					conditionRateUnit: $input.data('unit'),
+					conditionRate: $input.val()
+				});
+			});
+
+			$.ajax({
+				url: $formDiv.data('apply-action'),
+				async: true,
+				data: JSON.stringify(elements),
+				contentType: "application/json; charset=utf-8",
+				dataType: "json",
+				method: "POST",
+				success: function(response)
+				{
+					if(!response || !response.success) {
+						console.error("[ApplyPriceElementsChange] Operation not successful");
+					}
+					$.colorbox.close();
+				}
+			});
+
+			return false;
+		});
+	},
+
+	getPriceElementsValues: function ()
+	{
+		var $formDiv = $('#colorbox').find('.price-elements-form'),
+			elements = {
+				positionNumber:  $formDiv.data('pos-number'),
+				productCode: $formDiv.data('product-code'),
+				priceElements: []
+			};
+
+		$formDiv.find('input').each(function( index ) {
+			var $input = $(this);
+			elements.priceElements.push({
+				conditionType: $input.data('code'),
+				pos: $input.data('sequence'),
+				conditionRateUnit: $input.data('unit'),
+				conditionRate: $input.val()});
+		});
+
+		return elements;
+	}
+};

@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"name": "NGC-Global",
+			"path": "."
+		},
+		{
+			"name": "assets",
+			"path": "../../../assets"
+		},
+		{
+			"name": "Flender _ Homepage_files",
+			"path": "../../../Flender _ Homepage_files"
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "NGC-Marine-Website"
+	}
+}

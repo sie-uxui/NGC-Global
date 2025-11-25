@@ -1,0 +1,53 @@
+ACC.keyfigureAnimation = {
+
+
+    _autoload: [
+        "bindKeyfigureAnimation",
+    ],
+
+    bindKeyfigureAnimation: function () {
+
+        const items = gsap.utils.toArray(".keyfigure-item");
+
+        if (items.length) {
+
+            gsap.registerPlugin(ScrollTrigger);
+
+            ScrollTrigger.defaults({
+                toggleActions: "restart pause resume pause",
+            });
+
+            items.forEach(function (item, i) {
+                var count = item,
+                    zero = {val: 0};
+
+                if (count.dataset.number.indexOf(',') > -1) {
+                    var num = count.dataset.number.replace(/,/g, '.');
+                } else {
+                    var num = count.dataset.number;
+                }
+
+                var split = (num + "").split("."),
+                    decimals = split.length > 1 ? split[1].length : 0;
+
+                gsap.to(zero, {
+                    scrollTrigger: ".key-figure-component-wrapper",
+                    val: num,
+                    duration: 1,
+                    snap: {textContent: 1},
+                    ease: "power1.in",
+                    stagger: {
+                        each: 0.4,
+                        onUpdate: function () {
+                            if (count.dataset.number.indexOf(',') > -1) {
+                                count.textContent = zero.val.toFixed(decimals).toString().replace(".", ",");
+                            } else {
+                                count.textContent = zero.val.toFixed(decimals);
+                            }
+                        },
+                    },
+                });
+            });
+        }
+    }
+}

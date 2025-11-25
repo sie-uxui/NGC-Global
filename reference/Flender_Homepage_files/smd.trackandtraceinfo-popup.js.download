@@ -1,0 +1,44 @@
+ACC.trackandtraceinfopopup = {
+
+    _autoload: [
+        "bindPopupLink"
+    ],
+
+    loadPopup: function (e) {
+		var getURL = e.currentTarget.href,
+			orderNo = $(e.currentTarget).data('orderno'),
+			purchaseOrderNumber = $(e.currentTarget).data('porderno');
+
+		ACC.trackandtraceinfopopup.openPopup();
+
+		$.ajax({
+			url: getURL,
+			data: {'orderNo': orderNo, 'purchaseOrderNumber': purchaseOrderNumber},
+			success: function (response)
+			{
+				$('#cboxLoadedContent').html(response);
+				$('#colorbox').colorbox.resize()
+			}
+		});
+    },
+
+	openPopup: function () {
+		var title = $('.trackandtraceinfo-popup-title-holder').html();
+		
+		ACC.colorbox.open(title,{
+			html: $('.trackandtraceinfo-popup-content-holder').html(),
+            width: 700,
+            onComplete: function(){
+				ACC.colorbox.resize();
+			}
+        });
+	},
+
+	bindPopupLink: function ()
+	{
+		$(document).on("click",'.item__track-and-trace-info', function (e){
+			ACC.trackandtraceinfopopup.loadPopup(e);
+			return false;
+		});
+	}
+};

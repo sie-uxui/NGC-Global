@@ -1,0 +1,282 @@
+ACC.contactperson = {
+
+    _autoload: [
+        "bindChangeEvent",
+        "contactPersonLayer",
+        "bindContactInfoBox"
+    ],
+
+    _filters: {
+    },
+
+    bindChangeEvent: function () {
+        var $form = $('#contactPersonSearchForm');
+        $form.find("select[name='filterChainSelect']").select2();
+        $form.on("change", "select", ACC.contactperson.updateFilters);
+    },
+
+    updateFilters: function () {
+        var $form = $('#contactPersonSearchForm'),
+            postUrl = $form.attr("action"),
+            $chainSelect = $form.find("select.js-filterChainSelect"),
+            chainCode = $chainSelect.find("option:selected").val(),
+        	spinner = $form.find('.spinner'),
+            $this = $(this),
+            $thisSelected = $this.find("option:selected");
+        if (!chainCode) {
+            return;
+        }
+
+        var reqData = {fcCode: chainCode};
+        if ($thisSelected.val() && $thisSelected.val() !== chainCode) {
+            var fValues = [];
+            $form.find('.sub-filter').each(function () {
+                var $filter = $(this);
+                if ($filter.data('position') < $this.data('position')) {
+                    fValues.push($filter.data('filtercode') + '::' + $filter.find("option:selected").val());
+                }
+            });
+            fValues.push($this.data('filtercode') + '::' + $thisSelected.val());
+            reqData.fValues = fValues.join(',');
+        }
+
+        // hide all following elements after a filter box value has changed and BEFORE the request is processed
+        ACC.supportticket && ACC.supportticket.onHidePoi();
+        ACC.contactperson.showPersonDetails(false);
+        ACC.contactperson.hideSubFilters($this.data('position') + 1);
+
+        //show loading spinner
+        spinner.show();
+
+        $.post(postUrl, reqData, function (result, statusText, xhr) {
+            if (xhr.status === 405) {
+                // if the CSRF token is expired, Spring MVC returns 'Method not found' -> reload the page to renew token
+                window.location.reload();
+                return;
+            }
+
+            var $errorMsg = $('#contactPerson .error'),
+                $detailsPane = $('#contactPersonDetails');
+
+            $errorMsg.addClass('hidden');
+            $detailsPane.addClass('hidden');
+
+            if (result.poi) {
+            	//hide loading spinner
+                spinner.hide();
+
+                ACC.contactperson.showPersonDetails(result.poi);
+                ACC.supportticket && ACC.supportticket.onShowPoi(result.poi,
+                                                                 ACC.contactperson._filters,
+                                                                 $chainSelect.find("option:selected").text());
+            } else if (result.filter) {
+            	//hide loading spinner
+                spinner.hide();
+
+                ACC.contactperson._filters[result.filter.code] = result.filter;
+                ACC.contactperson.renderSubFilter(result.filter);
+            } else {
+            	//hide loading spinner
+                spinner.hide();
+
+                $errorMsg.removeClass('hidden');
+            }
+        });
+    },
+
+    renderSubFilter: function (filter) {
+        if (!filter) return;
+        var $form = $('#contactPersonSearchForm'),
+            $filters = $form.find('select.form-control');
+
+        ACC.contactperson.hideSubFilters(filter.position, $filters);
+        var $newSelectBox = ACC.contactperson.createSelectBox(filter);
+        $form.append($newSelectBox);
+
+        // Generate Autosuggest Select
+        $newSelectBox.select2();
+    },
+
+    createSelectBox: function (filter) {
+        if (!filter) return;
+
+        var $form = $('#contactPersonSearchForm'),
+            isVertical = $form.data('isvertical');
+        var $selectBox = $('<select class="form-control sub-filter' + (isVertical ? ' vertical-align' : '') + '" data-filtercode="' + filter.code + '" data-position="' + filter.position + '"' + (isVertical ? '' : ' style="width: 30%"') + '><option>' + filter.defaultOptionLabel + '</option></select>');
+
+        // select2 with lazy loading
+        var values = filter.values;
+        $.fn.select2.amd.require([
+            'select2/data/array',
+            'select2/utils'
+        ], function (ArrayData, Utils) {
+            function CustomData($element, options) {
+                CustomData.__super__.constructor.call(this, $element, options);
+            }
+
+            Utils.Extend(CustomData, ArrayData);
+
+            CustomData.prototype.query = function (params, callback) {
+                var data = {
+                    results: []
+                };
+                for (var i = 0; i < values.length; i++) {
+                    var value = values[i];
+                    if (!params.term || value.name.toLowerCase().indexOf(params.term.toLowerCase()) >= 0) {
+                        data.results.push({
+                            id: value.code,
+                            text: value.name
+                        });
+                    }
+                    if (data.results.length === 5) {
+                        break;
+                    }
+                }
+                callback(data);
+            };
+
+            $selectBox.select2({
+                dataAdapter: CustomData
+            });
+        });
+        return $selectBox;
+    },
+
+    hideSubFilters: function (pos, $filters) {
+        var $subFilters = $filters && $filters.length ? $filters : $('#contactPersonSearchForm').find('select.form-control');
+
+        $subFilters.each(function () {
+            var $filter = $(this);
+            if ($filter.data('position') >= pos) {
+                var closest = $filter.closest('.sub-filter');
+                // destroy first to remove select2 generated elements
+                closest.select2('destroy');
+                // remove select2
+                closest.remove();
+            }
+        });
+    },
+
+    showPersonDetails: function (poi) {
+        var $detailsPane = $('#contactPersonDetails');
+        if (!poi) {
+            $detailsPane.addClass('hidden');
+            return;
+        }
+
+        var $title = $detailsPane.find('.page-sub-title'),
+            $info = $detailsPane.find('.js-info'),
+            $mail = $detailsPane.find('.js-mail'),
+            $phone = $detailsPane.find('.js-phone'),
+            $fax = $detailsPane.find('.js-fax'),
+            $desc = $detailsPane.find('.js-desc'),
+            address = poi.address,
+            checkNull = function (value) {
+                return value === null ? '' : value;
+            },
+            fullName = checkNull(address.firstName) + ' ' + checkNull(address.lastName),
+            wrap = function (value) {
+                return '<span>' + checkNull(value) + '</span>';
+            };
+
+        //$title.empty().append(fullName);
+        $info.empty().append(wrap(fullName)).append(wrap(address.department)).append(wrap(address.companyName));
+        address.email ? $mail.empty().append(address.email).parent().show() : $mail.parent().hide();
+        var phoneExt = address.phoneExt || address.phoneExt == 0 ? " " + address.phoneExt : "";
+        address.phone ? $phone.empty().append(address.phone + phoneExt).parent().show() : $phone.parent().hide();
+        address.fax ? $fax.empty().append(address.fax).parent().show() : $fax.parent().hide();
+        $desc.empty().append(poi.storeContent);
+        ACC.contactperson.showAddress($detailsPane, poi, wrap);
+        ACC.contactperson.showImage($detailsPane, poi);
+        $detailsPane.removeClass('hidden');
+    },
+
+    showAddress: function ($detailsPane, poi, wrap) {
+        var $address = $detailsPane.find('.js-address'),
+            address = poi.address;
+
+        if (poi.localAddress) {
+            $address.empty().append(poi.localAddress);
+        } else {
+            $address.empty().append(wrap(address.streetName + ' ' + address.streetNo)).append('<br>').append(wrap(address.postalCode + ' ' + address.town)).append('<br>').append(wrap(address.country.name));
+        }
+    },
+
+    showImage: function ($detailsPane, poi) {
+        var $image = $detailsPane.find('.image img'),
+            image = poi.storeImages && poi.storeImages[0];
+
+        if (image) {
+            $image.attr("title", image.altText).attr("alt", image.altText).attr("src", image.url);
+        } else {
+            $image.attr("title", "").attr("alt", "").attr("src", "");
+        }
+    },
+
+    init: function (category) {
+        var $form = $('#contactPersonSearchForm'),
+            searchUrl = $form.attr("action") + 'filter-chains',
+            $filterChainSelect = $form.find("select[name='filterChainSelect']"),
+            $emptyOption = $filterChainSelect.find("option[value='-1']"),
+            updateFilters = function() {
+                ACC.contactperson.hideSubFilters(0);
+                ACC.contactperson.showPersonDetails();
+                if ($filterChainSelect.val() !== '-1') {
+                    $filterChainSelect.val($emptyOption.val()).trigger('change');
+                }
+                ACC.contactperson.updateFilters();
+            };
+
+        if (category) {
+            $.get(searchUrl, {'responsibility': category}, function (result) {
+                var $fcSelect = $form.find('.js-filterChainSelect');
+
+                $fcSelect.select2('destroy');
+                $fcSelect.remove();
+
+                var filterData = $.extend(result.filter, {'defaultOptionLabel': $form.data('emptylabel')}),
+                    $newSelectBox = ACC.contactperson.createSelectBox(filterData);
+                $newSelectBox.removeClass('sub-filter', 'vertical-align').addClass('js-filterChainSelect');
+                $form.prepend($newSelectBox);
+
+                // Generate Autosuggest Select
+                $newSelectBox.select2();
+
+                updateFilters();
+            });
+        }
+    },
+
+    //Contact Person Layer Webquote + OrderDetail Page
+    contactPersonLayer: function () {
+        var contactInfoBox = $(".contact-info-text");
+        if (contactInfoBox.length > 0) {
+            if (window.pageYOffset === 0) {
+                contactInfoBox.css("display", "inline-block");
+            }
+            window.onscroll = function () {
+                if (window.pageYOffset > 0) {
+                    contactInfoBox.css("display", "none");
+                } else {
+                    contactInfoBox.css("display", "inline-block");
+                }
+            }
+        }
+    },
+
+    bindContactInfoBox: function () {
+        if (!$("show-contact-info").length) {
+            return;
+        }
+
+        const contactElement = $(".contact--element");
+        contactElement.removeClass("hidden");
+
+        const contactInfoAction = $(".contact-info-action");
+        contactElement.find(".js-open-contact-info-card").click(function (event) {
+            contactElement.toggleClass("locked");
+            contactInfoAction.toggleClass("open");
+            event.preventDefault();
+        });
+    }
+};

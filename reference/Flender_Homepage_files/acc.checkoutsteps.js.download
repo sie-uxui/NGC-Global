@@ -1,0 +1,38 @@
+ACC.checkoutsteps = {
+
+	_autoload: [
+		"initPageEvents",
+		"permeateLinks",
+		"bindAddCommentButton"
+	],
+
+	initPageEvents: function () {
+		// render html tooltip
+		$(".enduser-info").tooltip({
+			content: function () {
+				return this.getAttribute("title");
+			},
+		});
+	},
+
+	permeateLinks: function() {
+
+		$(document).on("click",".js-checkout-step",function(e){
+			e.preventDefault();
+			window.location=$(this).closest("a").attr("href")
+		})
+	},
+
+	bindAddCommentButton:function(){
+
+		$(document).on("click",".checkout-comment__add",function(e){
+			e.preventDefault();
+
+			$('.checkout-comment__add').hide();
+			$('.checkout-comment').show();
+		})
+
+	}
+
+
+};

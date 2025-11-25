@@ -1,0 +1,1385 @@
+/*!
+ * NGC Marine - Custom Styles
+ * Based on Flender Design Structure
+ * Bootstrap 3.3.7 Compatible
+ */
+
+/* Import Google Fonts - Flender Typography */
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap');
+
+/* ========================================
+   RESET & BASE STYLES
+   ======================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: sans-serif;
+  -ms-text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: "Open Sans", Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #4c555a;
+  background-color: #ffffff;
+  font-weight: 400;
+}
+
+/* ========================================
+   TYPOGRAPHY
+   ======================================== */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Open Sans", Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #154259;
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+
+h1 { font-size: 36px; font-weight: 700; }
+h2 { font-size: 30px; font-weight: 700; }
+h3 { font-size: 24px; font-weight: 600; }
+h4 { font-size: 18px; font-weight: 600; }
+h5 { font-size: 16px; font-weight: 600; }
+h6 { font-size: 14px; font-weight: 600; }
+
+p {
+  margin: 0 0 10px;
+}
+
+a {
+  color: #227dc6;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a:hover,
+a:focus {
+  color: #1b629a;
+  text-decoration: none;
+}
+
+/* ========================================
+   LAYOUT - BOOTSTRAP GRID
+   ======================================== */
+
+.container {
+  margin-right: auto;
+  margin-left: auto;
+  padding-left: 15px;
+  padding-right: 15px;
+  max-width: 1200px;
+}
+
+.container-fluid {
+  margin-right: auto;
+  margin-left: auto;
+  padding-left: 15px;
+  padding-right: 15px;
+  width: 100%;
+}
+
+.row {
+  margin-left: -15px;
+  margin-right: -15px;
+}
+
+.row:before,
+.row:after {
+  content: " ";
+  display: table;
+}
+
+.row:after {
+  clear: both;
+}
+
+/* Grid Columns */
+.col-xs-12, .col-sm-12, .col-md-3, .col-md-4, .col-md-6, .col-md-8, .col-md-12, .col-lg-10, .col-lg-12 {
+  position: relative;
+  min-height: 1px;
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+.col-xs-12 {
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .col-sm-12 { width: 100%; }
+  .col-md-3 { width: 25%; float: left; }
+  .col-md-4 { width: 33.33333%; float: left; }
+  .col-md-6 { width: 50%; float: left; }
+  .col-md-8 { width: 66.66667%; float: left; }
+  .col-md-12 { width: 100%; }
+}
+
+@media (min-width: 992px) {
+  .col-lg-10 { width: 83.33333%; float: left; }
+  .col-lg-12 { width: 100%; }
+}
+
+/* ========================================
+   BUTTONS
+   ======================================== */
+
+.btn {
+  display: inline-block;
+  padding: 12px 24px;
+  margin-bottom: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.42857143;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  color: #fff;
+  background-color: #227dc6;
+  border-color: #227dc6;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  color: #fff;
+  background-color: #1b629a;
+  border-color: #1b629a;
+}
+
+.btn-transparent {
+  color: #227dc6;
+  background-color: transparent;
+  border: 2px solid #227dc6;
+}
+
+.btn-transparent:hover,
+.btn-transparent:focus {
+  color: #fff;
+  background-color: #227dc6;
+  border-color: #227dc6;
+}
+
+.btn-block {
+  display: block;
+  width: 100%;
+}
+
+.btn-block a {
+  color: inherit;
+  display: block;
+  width: 100%;
+}
+
+/* ========================================
+   HEADER & NAVIGATION
+   ======================================== */
+
+.navbar-fixed-top {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 1030;
+}
+
+.fl-header {
+  background-color: rgba(0, 25, 56, 0.9); /* Darker blue with 75% opacity */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  height: 65px;
+}
+
+/* Navbar - Scrolled State: FULLY OPAQUE (no transparency) */
+.fl-header.scrolled {
+    background-color: rgb(0, 34, 75) !important; /* Solid navy - NO alpha/transparency */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+}
+
+.fl-header__main--wrapper {
+  background-color: transparent;
+  height: 100%;
+}
+
+.fl-header__main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  position: relative;
+  height: 100%;
+}
+
+.fl-header__main > div {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  justify-content: space-between;
+  height: 100%;
+}
+
+/* Logo - White Text */
+.fl-logo {
+  flex: 0 0 auto;
+  margin-right: 40px;
+}
+
+.fl-logo img,
+.fl-logo svg {
+  height: 45px;
+  width: auto;
+}
+
+.fl-logo svg text {
+  fill: #ffffff !important;
+}
+
+/* Main Navigation - White Text - Flender Style */
+.navigation {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.nav__links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.fl-mainnav {
+  flex: 1;
+}
+
+.nav__links--primary {
+  margin: 0 5px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.nav__link {
+  display: block;
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.nav__link a {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  color: #ffffff;
+  font-family: "Open Sans", sans-serif;
+  font-weight: 400;
+  font-size: 15px;
+  text-transform: none;
+  letter-spacing: 0.3px;
+  transition: color 0.3s ease, opacity 0.3s ease;
+  height: 100%;
+  outline: none; /* Remove blue outline */
+}
+
+.nav__link a:hover {
+  color: #227dc6;
+  opacity: 0.95;
+}
+
+.nav__link a:focus {
+  outline: none; /* Remove blue outline on focus */
+  color: #ffffff; /* Keep white, no blue highlight */
+}
+
+.nav__link a:active {
+  outline: none; /* Remove blue outline on click */
+  background: transparent; /* No blue background */
+}
+
+.nav__links--primary-has__sub .nav__link {
+  cursor: pointer;
+}
+
+/* Remove any active state styling on nav items */
+.nav__links--primary.active,
+.nav__links--primary-has__sub.active {
+  background: transparent; /* No blue background */
+}
+
+.nav__links--primary.active .nav__link a,
+.nav__links--primary-has__sub.active .nav__link a {
+  background: transparent; /* No blue background */
+  color: #ffffff; /* Keep white */
+  outline: none; /* No outline */
+}
+
+/* Secondary Navigation (Language/Search) - White Icons */
+.nav__links--secondary {
+  display: flex;
+  gap: 15px;
+  margin-left: 20px;
+  align-items: center;
+}
+
+.nav__links--secondary li {
+  list-style: none;
+}
+
+.nav__links--secondary img {
+  width: 22px;
+  height: 22px;
+  filter: brightness(0) invert(1);
+  transition: opacity 0.3s ease;
+}
+
+.nav__links--secondary a:hover img {
+  opacity: 0.7;
+}
+
+/* ========================================
+   FLYOUT NAVIGATION (MEGA MENU) - FULL WIDTH
+   ======================================== */
+
+.fl-header__flyout--wrapper {
+  position: fixed; /* Fixed to viewport */
+  top: 65px; /* Below navbar */
+  left: 0;
+  right: 0;
+  width: 100vw; /* Full viewport width */
+  background-color: #ffffff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  pointer-events: none;
+  max-height: 0;
+  overflow: hidden;
+}
+
+.fl-header__flyout--wrapper.active {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: all;
+  max-height: calc(100vh - 65px); /* Full height minus navbar */
+}
+
+.fl-header__flyout {
+  display: flex;
+  padding: 40px 60px; /* Increased horizontal padding */
+  max-height: 88vh;
+  overflow-y: auto;
+  width: 100%;
+}
+
+.fl-header__flyout--content {
+  flex: 0 0 300px;
+  padding: 0 30px;
+  border-right: 1px solid #eeeeee;
+}
+
+.fl-header__flyout--content img {
+  max-width: 100%;
+  margin-bottom: 20px;
+  border-radius: 4px;
+}
+
+.fl-header__flyout--content h3 {
+  color: #00224B;
+  margin-bottom: 15px;
+}
+
+.fl-header__flyout--content p {
+  color: #777777;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+/* Flyout Navigation Items */
+.fl-flyout-navigation {
+  flex: 1;
+  padding: 0 20px;
+}
+
+.sub-navigation-section {
+  padding: 0 15px;
+}
+
+.sub-navigation-section .caption {
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #227dc6;
+}
+
+.sub-navigation-section .caption h2 {
+  font-size: 18px;
+  color: #00224B;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fl-flyout-navigation--item-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.fl-flyout-navigation--item-link {
+  margin-bottom: 10px;
+}
+
+.fl-flyout-navigation--item-link a {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.fl-flyout-navigation--item-link a:hover {
+  background-color: #f5f5f5;
+}
+
+.fl-flyout-navigation-icon {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  margin-right: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fl-flyout-navigation-icon img {
+  max-width: 100%;
+  max-height: 100%;
+  filter: brightness(0) saturate(100%) invert(18%) sepia(45%) saturate(1800%) hue-rotate(178deg) brightness(95%) contrast(98%);
+}
+
+.fl-flyout-navigation-title {
+  flex: 1;
+  color: #4c555a;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.fl-flyout-navigation--item-link a:hover .fl-flyout-navigation-title {
+  color: #227dc6;
+}
+
+.fl-flyout-navigation--all-link {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #eeeeee;
+}
+
+.fl-flyout-navigation--all-link a {
+  justify-content: center;
+  background-color: #f5f5f5;
+}
+
+.fl-flyout-navigation--all-link .fl-flyout-navigation-title {
+  color: #227dc6;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+/* ========================================
+   SIDEBAR NAVIGATION (RIGHT SIDE) - FLENDER STYLE - FIXED
+   ======================================== */
+
+.side-bar-navigation--wrapper {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 9999; /* MUCH higher - above everything */
+}
+
+.side-bar-navigation {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end; /* Align buttons to right edge */
+  gap: 0;
+}
+
+.side-bar-navigation--element {
+  background: #227dc6;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Center icon when collapsed */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px 0 0 0; /* Round only top-left corner */
+  box-shadow: -3px 0 10px rgba(0, 0, 0, 0.2);
+  transition: width 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Expand on hover - only the hovered element */
+.side-bar-navigation--element:hover {
+  width: 200px; /* Expand LEFT to show text */
+  background: #1b629a; /* Darker blue on hover */
+  box-shadow: -5px 0 20px rgba(0, 0, 0, 0.4);
+  border-radius: 6px 0 0 6px; /* Full rounded left side when expanded */
+}
+
+.side-bar-navigation--element:last-child {
+  border-bottom: none;
+  border-radius: 6px 0 0 6px; /* Bottom corners rounded */
+}
+
+.side-bar-navigation--element:first-child {
+  border-radius: 6px 0 0 0; /* Top corner rounded */
+}
+
+.side-bar-navigation--element a {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* Icon on LEFT, text on RIGHT */
+  width: 100%;
+  height: 100%;
+  padding: 0 20px; /* Even padding */
+  color: #ffffff;
+  text-decoration: none;
+  white-space: nowrap;
+  gap: 15px; /* Space between icon and text */
+}
+
+.side-bar-navigation--element img {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0; /* Don't shrink icon */
+  filter: brightness(0) invert(1);
+  transition: transform 0.2s ease;
+  order: -1; /* Icon FIRST (left side) */
+}
+
+.side-bar-navigation--element:hover img {
+  transform: scale(1.05);
+}
+
+/* Text labels - hidden by default, fade in on hover */
+.side-bar-navigation--element span {
+  font-size: 14px;
+  font-weight: 400;
+  opacity: 0;
+  transform: translateX(-10px); /* Slide in from LEFT */
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Show text on hover */
+.side-bar-navigation--element:hover span {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ========================================
+   BACKGROUND MASKS - DISABLED
+   ======================================== */
+
+.fl-background-mask {
+  display: none; /* No gray overlay */
+}
+
+/* ========================================
+   MAIN CONTENT
+   ======================================== */
+
+.fl-main {
+  margin-top: 65px;
+  min-height: calc(100vh - 65px);
+}
+
+/* ========================================
+   HERO SECTION - FULL SCREEN VIDEO (FLENDER STYLE)
+   ======================================== */
+
+/* Hero Wrapper */
+.hero-section-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+.smdmegabanner {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.bannercontent {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+/* Full-Screen Video Background */
+.hero-video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+/* Video Fallback (gradient) */
+.hero-video-fallback {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #001923 0%, #003e62 50%, #00224B 100%);
+  z-index: 0;
+}
+
+/* Hero Content Overlay - Left Side Box */
+.hero-content-overlay {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* Changed from center */
+  margin-top: -60px; /* Pull up by 100px, adjust as needed */
+  padding-left: 8%;
+  padding-right: 8%;
+}
+
+/* Text Box - MORE TRANSPARENT Navy (Video shows through better!) */
+.hero-text-box {
+  background-color: rgba(0, 34, 75, 0.5);
+  padding: 50px 60px;
+  max-width: 650px;
+  border-radius: 4px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+.hero-title {
+  color: #ffffff;
+  font-size: 48px;
+  font-weight: bold;
+  line-height: 1.2;
+  margin: 0 0 20px 0;
+  font-family: "DIN", "Open Sans", Arial, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.hero-subtitle {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 300;
+  line-height: 1.6;
+  margin: 0 0 30px 0;
+  opacity: 0.95;
+}
+
+/* Learn More Button - Solid Blue */
+.hero-learn-more-btn {
+  display: inline-block;
+  background-color: #227dc6;
+  color: #ffffff;
+  padding: 14px 32px;
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(34, 125, 198, 0.3);
+}
+
+.hero-learn-more-btn:hover {
+  background-color: #1b629a;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(34, 125, 198, 0.4);
+  color: #ffffff;
+}
+
+.hero-learn-more-btn .arrow {
+  margin-left: 8px;
+  transition: transform 0.3s ease;
+}
+
+.hero-learn-more-btn:hover .arrow {
+  transform: translateX(5px);
+  display: inline-block;
+}
+
+/* Stats Boxes - Below Text */
+.hero-stats-container {
+  display: flex;
+  gap: 20px;
+  margin-top: 30px;
+  max-width: 650px;
+}
+
+.hero-stat-box {
+  flex: 1;
+  background-color: rgba(0, 34, 75, 0.5);
+  padding: 20px;
+  text-align: center;
+  border-radius: 4px;
+  border-left: 4px solid #227dc6;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+.hero-stat-box:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  background-color: rgba(0, 34, 75, 0.75);
+}
+
+.hero-stat-number {
+  font-size: 42px;
+  font-weight: bold;
+  color: #ffffff;
+  line-height: 1;
+  margin-bottom: 8px;
+  font-family: "DIN", Arial, sans-serif;
+}
+
+.hero-stat-label {
+  font-size: 12px;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+/* ========================================
+   OTHER MEGA BANNERS (Non-Hero Sections)
+   ======================================== */
+
+.smdmegabanner:not(.cmsitem_hero-homepage) {
+  min-height: 600px;
+}
+
+.mega-banner-media--image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.boxcontainer--wrapper {
+  width: 100%;
+}
+
+.boxcontainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.smdmegabannerbox {
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.smdmegabannerbox .boxcontent {
+  padding: 20px;
+}
+
+.smdmegabannerbox .caption h2 {
+  color: inherit;
+  margin-bottom: 15px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+.smdmegabannerbox .content-wrapper {
+  margin-bottom: 20px;
+}
+
+.smdmegabannerbox .content h2 {
+  color: #ffffff;
+  font-size: 28px;
+  margin-bottom: 15px;
+}
+
+.smdmegabannerbox .content h3 {
+  color: inherit;
+  font-size: 20px;
+  margin-bottom: 15px;
+}
+
+.smdmegabannerbox .content p {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #ffffff;
+}
+
+.linkbox {
+  margin-top: 20px;
+}
+
+.linkbox--item {
+  margin-bottom: 10px;
+}
+
+/* ========================================
+   MEDIA COMPONENTS (50/50 SPLIT)
+   ======================================== */
+
+.fl-media-comp {
+  display: flex;
+  align-items: stretch;
+  min-height: 400px;
+  margin: 60px 0;
+}
+
+.fl-media-comp--media,
+.fl-media-comp--text {
+  flex: 1;
+  display: flex;
+}
+
+.fl-v-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 40px;
+}
+
+.fl-media-comp--media img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.fl-media-comp--right .fl-media-comp--media {
+  order: 2;
+}
+
+.fl-media-comp--right .fl-media-comp--text {
+  order: 1;
+}
+
+.fl-equalheight {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ========================================
+   FOOTER
+   ======================================== */
+
+.fl-footer {
+  background-color: #001923;
+  color: #999999;
+}
+
+.fl-footer h4 {
+  color: #ffffff;
+  font-size: 16px;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fl-footer ul {
+  list-style: none;
+  padding: 0;
+}
+
+.fl-footer ul li {
+  margin-bottom: 10px;
+}
+
+.fl-footer a {
+  color: #999999;
+  transition: color 0.3s ease;
+}
+
+.fl-footer a:hover {
+  color: #227dc6;
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.img-responsive {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 991px) {
+  .fl-header__main {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .navigation {
+    width: 100%;
+    margin-top: 15px;
+  }
+
+  .fl-mainnav {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .nav__links--primary {
+    width: 100%;
+    margin: 5px 0;
+  }
+
+  .fl-media-comp {
+    flex-direction: column !important;
+  }
+
+  .fl-media-comp--right .fl-media-comp--media,
+  .fl-media-comp--right .fl-media-comp--text {
+    order: initial;
+  }
+
+  .hero-stats-container {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .side-bar-navigation--wrapper {
+    display: none;
+  }
+
+  .hero-text-box {
+    padding: 35px 40px;
+  }
+
+  .hero-title {
+    font-size: 38px;
+  }
+}
+
+@media (max-width: 767px) {
+  .fl-main {
+    margin-top: 60px;
+  }
+
+  .hero-content-overlay {
+    padding-left: 5%;
+    padding-right: 5%;
+  }
+
+  .hero-text-box {
+    padding: 30px 25px;
+    max-width: 100%;
+  }
+
+  .hero-title {
+    font-size: 32px;
+  }
+
+  .hero-subtitle {
+    font-size: 16px;
+  }
+
+  .hero-stat-number {
+    font-size: 32px;
+  }
+
+  .hero-stat-label {
+    font-size: 11px;
+  }
+
+  .fl-header__flyout {
+    flex-direction: column;
+  }
+
+  .fl-header__flyout--content {
+    border-right: none;
+    border-bottom: 1px solid #eeeeee;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+  }
+
+  .sub-navigation-section {
+    margin-bottom: 30px;
+  }
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+.skip {
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* Focus styles for keyboard navigation */
+a:focus,
+button:focus {
+  outline: 2px solid #227dc6;
+  outline-offset: 2px;
+}
+
+/* ========================================
+   PRINT STYLES
+   ======================================== */
+
+@media print {
+  .fl-header,
+  .side-bar-navigation--wrapper,
+  .fl-background-mask {
+    display: none;
+  }
+
+  .fl-main {
+    margin-top: 0;
+  }
+
+  a {
+    color: #000;
+  }
+}
+
+/* ========================================
+   SERVICE PORTFOLIO INFOGRAPHIC SECTION
+   ======================================== */
+
+#infographic-wrapper {
+  max-width: 1400px;
+  margin: 80px auto;
+  padding: 0 40px;
+}
+
+.infographic-animation {
+  display: flex;
+  gap: 60px;
+  align-items: flex-start;
+}
+
+.infographic-circle--wrapper {
+  flex-shrink: 0;
+  width: 500px;
+  position: sticky;
+  top: 100px;
+}
+
+.infographic-circle {
+  width: 100%;
+  height: auto;
+}
+
+.service-circle-segment {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.service-circle-segment:hover {
+  opacity: 0.8;
+}
+
+.infographic__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.infographic__section {
+  margin-bottom: 120px;
+}
+
+.infographic__item {
+  margin-bottom: 40px;
+}
+
+.infographic__item h3 {
+  color: #227dc6;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.infographic__item h2 {
+  color: #00224B;
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  line-height: 1.2;
+}
+
+.infographic__item h4 {
+  color: #00224B;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  margin-top: 40px;
+}
+
+.infographic__item p {
+  color: #333;
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.infographic__item ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.infographic__item ul li {
+  padding-left: 25px;
+  position: relative;
+  margin-bottom: 12px;
+  color: #333;
+  line-height: 1.6;
+  font-size: 15px;
+}
+
+.infographic__item strong {
+  color: #227dc6;
+  font-weight: 600;
+}
+
+/* Custom bullet points for service lists */
+.service-list-bullet {
+  color: #227dc6;
+  font-weight: bold;
+  position: absolute;
+  left: 0;
+}
+
+/* ========================================
+   FULL-WIDTH BANNER SECTIONS (Sustainability, Company)
+   ======================================== */
+
+.banner-section-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+.banner-content-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+}
+
+.banner-content-left {
+  justify-content: flex-start;
+}
+
+.banner-content-right {
+  justify-content: flex-end;
+}
+
+.banner-content-box {
+  background-color: rgba(34, 125, 198, 0.4);
+  padding: 40px;
+  max-width: 600px;
+  border-radius: 4px;
+}
+
+.banner-content-box h2 {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+.banner-content-box h3 {
+  color: #fff;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 20px;
+}
+
+.banner-content-box p {
+  color: #fff;
+  font-size: 16px;
+  line-height: 1.8;
+  margin-bottom: 30px;
+}
+
+.banner-content-box .btn {
+  display: inline-block;
+  padding: 14px 40px;
+  font-size: 18px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid #fff;
+  color: #fff;
+  background-color: transparent;
+  transition: all 0.3s ease;
+}
+
+.banner-content-box .btn:hover {
+  background-color: #fff;
+  color: #227dc6;
+}
+
+.banner-gradient-blue {
+  background: linear-gradient(135deg, #227dc6 0%, #4A90E2 100%);
+}
+
+.banner-gradient-navy {
+  background: linear-gradient(135deg, #00224B 0%, #1E5A8E 100%);
+}
+
+/* ========================================
+   RESPONSIVE - NEW SECTIONS
+   ======================================== */
+
+@media (max-width: 1024px) {
+  .infographic-animation {
+    flex-direction: column;
+  }
+
+  .infographic-circle--wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto 60px;
+  }
+
+  #infographic-wrapper {
+    padding: 0 20px;
+  }
+
+  .banner-content-box {
+    max-width: 90%;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .infographic__item h2 {
+    font-size: 28px;
+  }
+
+  .infographic__item h4 {
+    font-size: 18px;
+  }
+
+  .infographic__section {
+    margin-bottom: 80px;
+  }
+
+  .banner-content-box {
+    padding: 30px 20px;
+    max-width: 100%;
+  }
+
+  .banner-content-box h3 {
+    font-size: 24px;
+  }
+
+  .banner-content-box p {
+    font-size: 15px;
+  }
+
+  .banner-section-wrapper {
+    min-height: 600px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .infographic__item h2 {
+    font-size: 24px;
+  }
+
+  .infographic__item h3 {
+    font-size: 12px;
+  }
+
+  .infographic-circle--wrapper {
+    max-width: 300px;
+  }
+}

@@ -1,0 +1,147 @@
+ACC.tooltipvideocomponet = {
+    
+    _autoload: [
+        
+        ["setIfPageIsLoaded",$(".container-video150-component").length > 0],
+    
+    ],
+    
+    setComponentFunctionality:function (){
+        let isMobile = document.querySelector('.container-video150-component').dataset.isMobile;
+        
+        if(isMobile === 'false') {
+            let playNextVideoBtn = document.querySelector("#js-next-video");
+            let playlist = document.querySelectorAll("video");
+            let tooltipContainer = document.querySelectorAll('.tooltip-container-video150-component')
+            let tooltips = document.querySelectorAll(".tooltip-video150-component");
+            
+            // Integration, Positioning and Visibility of Tooltips
+            let placeTooltips = (video, index) => {
+                tooltipContainer.forEach(function (container, currIndex) {
+                    
+                    if (currIndex === index) {
+                        if(tooltips.length > 0) {
+                            tooltips.forEach(function (tooltip) {
+                                
+                                //change to percentPosition on video to be responsive
+                                let width = video.offsetWidth;
+                                let height = video.offsetHeight;
+                                let left = tooltip.dataset.left;
+                                let top = tooltip.dataset.top
+                                let x = width < 1400 || width > 1400 ? (left / 1400) * 100 : (left / width) * 100;
+                                let y = height < 690 ? (top / 690) * 100 : (top / height) * 100;
+                                
+                                // set limit for tooltips to not go out of video
+                                if (x >= 97) {
+                                    tooltip.style.right = 2 + '%';
+                                } else {
+                                    tooltip.style.left = x + "%";
+                                }
+                                if (y >= 97) {
+                                    tooltip.style.bottom = 2 + '%';
+                                } else {
+                                    tooltip.style.top = y + "%";
+                                }
+                                tooltip.style.display = "block";
+                                let icon = tooltip.querySelector(".tooltip-icon-video150-component");
+                                icon.style.display = 'block';
+                                icon.classList.add("fadeInTooltips");
+                                //remove fadeClass again to have normal hover effect
+                                setTimeout(function () {
+                                    icon.classList.remove("fadeInTooltips");
+                                }, 2000);
+                            });
+                        }
+                    }
+                })
+            };
+            
+            playlist.forEach(function (video, index) {
+                let i = index.toString();
+                
+                //initialVideo
+                if (index === 0) {
+                    let approxTime = 0;
+                    video.ontimeupdate = function () {
+                        let currentTime = Math.floor(video.currentTime);
+                        if (currentTime !== approxTime) {
+                            approxTime = currentTime;
+                            if (approxTime === 3) {
+                                placeTooltips(video, index);
+                            }
+                        }
+                    };
+                } else {
+                    video.addEventListener('play', function () {
+                        let approxTime = 0;
+                        video.ontimeupdate = function () {
+                            let currentTime = Math.floor(video.currentTime);
+                            if (currentTime !== approxTime) {
+                                approxTime = currentTime;
+                                if (approxTime === 2) {
+                                    placeTooltips(video, index);
+                                }
+                            }
+                        };
+                    })
+                }
+                
+                // show turnerIcon on video end
+                video.addEventListener("ended", function () {
+                    playNextVideoBtn.style.opacity = "1";
+                    playNextVideoBtn.style.visibility = "visible";
+                    playNextVideoBtn.setAttribute("data-video-index", i);
+                });
+            });
+            
+            //start next video on click
+            playNextVideoBtn.addEventListener("click", function () {
+                let videoIndex = this.dataset.videoIndex;
+                let getNextElementIndex = function (videoIndex) {
+                    let num = Number(videoIndex);
+                    if (num < 2) {
+                        return num + 1;
+                    } else {
+                        return num - 1;
+                    }
+                };
+                
+                let nextIndex = getNextElementIndex(videoIndex);
+                
+                //hide icon
+                playNextVideoBtn.style.opacity = "0";
+                playNextVideoBtn.style.visibility = "hidden";
+                
+                //hide tooltips
+                if(tooltips.length > 0) {
+                    tooltips.forEach(function (tooltip) {
+                        tooltip.style.display = "none";
+                        let icon = tooltip.querySelector(".tooltip-icon-video150-component");
+                        icon.classList.remove("fadeInTooltips");
+                    });
+                }
+                
+                // use timeout to avoid flicker
+                setTimeout(function () {
+                    //show new video
+                    playlist.item(nextIndex).classList.remove('hidden');
+                    tooltipContainer.item(nextIndex).classList.remove('hidden');
+                    
+                    //hide old video/tooltips
+                    tooltipContainer.item(videoIndex).classList.add("hidden");
+                    playlist.item(videoIndex).classList.add("hidden");
+                    
+                    //start video
+                    playlist.item(nextIndex).play();
+                    
+                    //reset last video
+                    playlist.item(videoIndex).currentTime = 0;
+                }, 800);
+            });
+        }
+    },
+    
+    setIfPageIsLoaded:function () {
+        ACC.tooltipvideocomponet.setComponentFunctionality();
+    }
+};

@@ -1,0 +1,235 @@
+ACC.product = {
+
+    _autoload: [
+        "bindToAddToCartForm",
+        "enableStorePickupButton",
+        "enableVariantSelectors",
+        "bindFacets",
+        "bindFacetCheckboxes"
+    ],
+
+    bindFacetCheckboxes: function () {
+        $(document).on("change", ".js-facet-checkbox", function (e) {
+            e.preventDefault();
+            var removeFacetUrl = $(this).data("href");
+            if (!removeFacetUrl || !removeFacetUrl.length) {
+                console.error("No facet remove location set on checkbox element with attribute 'data-href'!");
+                return;
+            }
+            window.location.href = removeFacetUrl;
+        });
+    },
+
+    bindFacets: function () {
+        $(document).on("click", ".js-show-facets", function (e) {
+            e.preventDefault();
+            var selectRefinementsTitle = $(this).data("selectRefinementsTitle");
+            var colorBoxTitleHtml = ACC.common.encodeHtml(selectRefinementsTitle);
+            ACC.colorbox.open(colorBoxTitleHtml, {
+                href: ".js-product-facet",
+                inline: true,
+                width: "480px",
+                onComplete: function () {
+                    $(document).on("click", ".js-product-facet .js-facet-name", function (e) {
+                        e.preventDefault();
+                        $(".js-product-facet  .js-facet").removeClass("active");
+                        $(this).parents(".js-facet").addClass("active");
+                        $.colorbox.resize()
+                    })
+                },
+                onClosed: function () {
+                    $(document).off("click", ".js-product-facet .js-facet-name");
+                }
+            });
+        });
+        enquire.register("screen and (min-width:" + screenSmMax + ")", function () {
+            $("#cboxClose").click();
+        });
+    },
+
+
+    enableAddToCartButton: function () {
+        $('.js-enable-btn').each(function () {
+            if (!($(this).hasClass('outOfStock') || $(this).hasClass('out-of-stock') || $(this).hasClass('keep-disabled'))) {
+                $(this).prop("disabled", false);
+            }
+        });
+    },
+
+    disableAddToCartButton: function () {
+        $('.js-enable-btn').each(function () {
+            $(this).attr("disabled", true);
+        });
+        $('.add-to-project-btn').each(function () {
+            $(this).attr("disabled", true);
+        });
+        $(event.target).find('.spinner').addClass('process');
+    },
+
+    enableVariantSelectors: function () {
+        $('.variant-select').prop("disabled", false);
+    },
+
+    bindToAddToCartForm: function (e) {
+        var addToCartForm = $('.add_to_cart_form'),
+            addToProjectUrl = $('.spiceaddtoproject').find("input[name='addToProjectUrl']").val();
+
+        console.log("addToCartForm " + addToCartForm)
+        console.log("addToProjectUrl " + addToProjectUrl)
+
+        addToCartForm.ajaxForm({
+        	beforeSubmit: function(arr, $form, options) {
+        	  var $submitBtn = $(document.activeElement),
+                  $focusBtn = $(":focus"),
+                  isAddToProject = $focusBtn.hasClass('add-to-project-btn');
+
+              const $referenceForm = $(".reference-form");
+              if ($referenceForm.length && isAddToProject) {
+                  const referenceData = $referenceForm.serializeArray();
+                  for (const data of referenceData) {
+                      if (arr.some(payload => payload.name === data.name)) {
+                          continue;
+                      }
+
+                      arr.push(data);
+                  }
+              }
+
+        	  console.log("submit btn: " + $submitBtn.attr("class"));
+              console.log("focus btn: " + $focusBtn.attr("class"))
+
+              if (isAddToProject && addToProjectUrl) {
+                  options.url = addToProjectUrl;
+              } else {
+                  options.url = $form.attr('action');
+              }
+
+              console.log("options.url " + options.url)
+
+              const projectCode = arr.find(element => element.name === "projectCode")
+              if(projectCode){
+                  const value = addToCartForm.find('.js-project-selector-select').getSelected();
+                  projectCode.value = value;
+              }
+              ACC.product.showRequest(arr, $form, options);
+              ACC.product.disableAddToCartButton();
+              ACC.myprojects.handleProductCode($form, arr);
+              ACC.myprojects.handleConfigId($form, arr);
+              ACC.myprojects.toggleMyProjectsAddButton(false, isAddToProject ? $submitBtn : null);
+            },
+        	success: function(cartResult, statusText, xhr, formElement) {
+              if (cartResult && cartResult.redirectUrl) {
+                window.location.replace(cartResult.redirectUrl);
+                return;
+              }
+              ACC.product.displayAddToCartPopup(cartResult, statusText, xhr, formElement);
+              ACC.product.enableAddToCartButton();
+              ACC.myprojects.toggleMyProjectsActionSpinner(false);
+              ACC.myprojects.toggleMyProjectsAddButton(true);
+            },
+            complete: function () {
+                $(".account-overview-table .spinner").removeClass("process");
+            }
+         });
+        setTimeout(function(){
+        	$ajaxCallEvent  = true;
+         }, 2000);
+     },
+     showRequest: function(arr, $form, options) {
+    	 if($ajaxCallEvent)
+    		{
+    		 $ajaxCallEvent = false;
+    		 return true;
+    		}
+    	 return false;
+
+    },
+
+    bindToAddToCartStorePickUpForm: function () {
+        var addToCartStorePickUpForm = $('#colorbox #add_to_cart_storepickup_form');
+        addToCartStorePickUpForm.ajaxForm({success: ACC.product.displayAddToCartPopup});
+    },
+
+    enableStorePickupButton: function () {
+        $('.js-pickup-in-store-button').prop("disabled", false);
+    },
+
+    displayAddToCartPopup: function(cartResult, statusText, xhr, formElement, skus) {
+    	$ajaxCallEvent=true;
+        $('#addToCartLayer').remove();
+        if (typeof ACC.minicart.updateMiniCartDisplay == 'function') {
+            ACC.minicart.updateMiniCartDisplay();
+        }
+
+        var titleHeader;
+        if (cartResult.addToProjectLayer) {
+            titleHeader = $('#addToProjectTitle').html();
+        } else if (cartResult.addToProductComparisonLayer) {
+            titleHeader = $('#addToProductComparisonTitle').html();
+        } else if (cartResult.addToQuoteLayer) {
+            titleHeader = $('#addToQuoteTitle').html();
+        } else {
+            titleHeader = $('#addToCartTitle').html();
+        }
+
+        var content;
+        if (cartResult.addToProjectLayer) {
+            content = cartResult.addToProjectLayer;
+        } else if (cartResult.addToProductComparisonLayer) {
+            content = cartResult.addToProductComparisonLayer;
+        } else if (cartResult.addToQuoteLayer) {
+            content = cartResult.addToQuoteLayer;
+        } else {
+            content = cartResult.addToCartLayer;
+        }
+
+        ACC.colorbox.open(titleHeader, {
+            html: content,
+            width: "550px",
+            escKey: false,
+            overlayClose: false,
+            onOpen: function() {
+                $("#colorbox").addClass("account-section");
+            }
+        });
+
+        var productCode = $('[name=productCodePost]', formElement).val();
+        var quantityField = $('[name=qty]', formElement).val();
+
+        var quantity = 1;
+        if (quantityField != undefined) {
+            quantity = quantityField;
+        }
+
+        if(skus !== undefined) {
+            if(skus.length > 0) {
+                $.each($('.mlfb'), function(index, item) {
+                    $(item).html(skus[index]);
+                });
+            }
+        } else {
+            $('.mlfb').html($('.description .code').html());
+        }
+
+        if (cartResult.cartAnalyticsData) {
+            var cartAnalyticsData = cartResult.cartAnalyticsData;
+
+            var cartData = {
+                "cartCode": cartAnalyticsData.cartCode,
+                "productCode": productCode, "quantity": quantity,
+                "productPrice": cartAnalyticsData.productPostPrice,
+                "productName": cartAnalyticsData.productName
+            };
+            ACC.track.trackAddToCart(productCode, quantity, cartData);
+        }
+
+        setTimeout(function(){
+          $.colorbox.resize();
+        }, 10);
+    }
+};
+
+$(document).ready(function () {
+	$ajaxCallEvent = true;
+    ACC.product.enableAddToCartButton();
+});

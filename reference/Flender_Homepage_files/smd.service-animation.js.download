@@ -1,0 +1,117 @@
+ACC.serviceAnimation = {
+    _autoload: [],
+
+    swiperContentSettings: function (sanitizedId) {
+        return {
+            direction: 'vertical',
+            allowTouchMove: false,
+            slideToClickedSlide: true,
+            virtualTranslate: true,
+            observer: true,
+            observeParents: true,
+            keyboard: {
+                enabled: true,
+            },
+            mousewheel: {
+                eventsTarget: sanitizedId + '.smdservice',
+                forceToAxis: false,
+                releaseOnEdges: true,
+                thresholdDelta: 10,
+                thresholdTime: 10,
+                sensitivity: 1
+            },
+        };
+    },
+
+    swipers: {},
+
+    initSwiper: function (componentId) {
+        var sanitizedId = "#" + componentId.trim().replace(/\s+/g, "-");
+        var selector = sanitizedId + " .swiperContent";
+
+        const swiperInstance = new Swiper(selector, ACC.serviceAnimation.swiperContentSettings(sanitizedId));
+        ACC.serviceAnimation.swipers[componentId] = swiperInstance;
+
+        ACC.serviceAnimation.bindServiceAnimation(swiperInstance);
+        ACC.serviceAnimation.bindResizeEvent(sanitizedId, swiperInstance);
+        ACC.serviceAnimation.bindIntersectionObserver(sanitizedId);
+        ACC.serviceAnimation.checkForWindowResize(sanitizedId, swiperInstance);
+    },
+
+    bindServiceAnimation: function (swiperInstance) {
+        swiperInstance.on('slideChangeTransitionStart', function () {
+            setTimeout(() => {
+                swiperInstance.animating = false;
+            }, 200);
+        });
+
+        swiperInstance.on('slidePrevTransitionStart', function () {
+            if (swiperInstance.activeIndex > 0) {
+                var index_currentSlide = swiperInstance.realIndex;
+                var currentSlide = swiperInstance.slides[index_currentSlide];
+
+                setTimeout(() => {
+                    var currentSlideTop = $(currentSlide).offset().top;
+
+                    $("html,body").animate({
+                        scrollTop: currentSlideTop - 150
+                    }, 200);
+                }, 0);
+            }
+        });
+
+        swiperInstance.on('slideNextTransitionStart', function () {
+            if (swiperInstance.activeIndex < swiperInstance.slides.length - 1) {
+                var index_currentSlide = swiperInstance.realIndex;
+                var currentSlide = swiperInstance.slides[index_currentSlide];
+
+                setTimeout(() => {
+                    var currentSlideTop = $(currentSlide).offset().top;
+
+                    $("html,body").animate({
+                        scrollTop: currentSlideTop - 150
+                    }, 500);
+                }, 500);
+            }
+        });
+    },
+
+    bindIntersectionObserver: function (sanitizedId) {
+        const serviceComponent = document.querySelector(sanitizedId + " .service-component-wrapper");
+        if (!serviceComponent) {
+            console.error(`Element not found for observer: ${sanitizedId} .service-component-wrapper`);
+            return;
+        }
+
+        const observer = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) {
+                const serviceItem = document.querySelector(sanitizedId + " .service-component-item");
+                if (serviceItem) {
+                    serviceItem.classList.remove("initial-deactivated");
+                }
+            }
+        }, {
+            root: null,
+            threshold: 0.2,
+        });
+
+        observer.observe(serviceComponent);
+    },
+
+    bindResizeEvent: function (sanitizedId, swiperInstance) {
+        window.addEventListener('resize', () => ACC.serviceAnimation.checkForWindowResize(sanitizedId, swiperInstance));
+    },
+
+    checkForWindowResize: function (sanitizedId, swiperInstance) {
+        const mobile = window.matchMedia('(min-width: 0px) and (max-width: 991px)');
+
+        if (mobile.matches) {
+            swiperInstance.destroy();
+        } else if (swiperInstance.destroyed === true) {
+            const selector = sanitizedId + ' .swiperContent';
+            const newInstance = new Swiper(selector, ACC.serviceAnimation.swiperContentSettings(sanitizedId));
+            ACC.serviceAnimation.swipers[sanitizedId] = newInstance;
+            ACC.serviceAnimation.bindServiceAnimation(newInstance);
+        }
+    },
+};

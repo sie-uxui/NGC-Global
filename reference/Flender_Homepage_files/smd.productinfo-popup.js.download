@@ -1,0 +1,665 @@
+ACC.productinfopopup = {
+
+    _autoload: [
+    	"initPage",
+        "bindProductInfoPopupLink",
+        "bindProductSuccessorPopupLink",
+        "bindProductSuccessorUpdateLink",
+		"dynamicResize",
+		"loadCasData",
+		"registerUnfoldables",
+		"registerSelectGroup",
+		"initDocumentShowCase"
+    ],
+
+	initPage: function () {
+		if ($('.page-cartPage').length) {
+			$(document).on( "click", "#colorbox.product-successor .cbox_closed", function(e) {
+				ACC.colorbox.close();
+			});
+		}
+	},
+
+	loadInfoPopup: function (e) {
+        var getURL = e.currentTarget.href;
+
+        ACC.productinfopopup.openProductInfoPopup();
+        
+        $.ajax({
+			url: getURL,
+
+			success: function (response)
+			{
+				var $cbContent = $('#cboxLoadedContent');
+
+				if($cbContent.length) {
+					$cbContent.html(response);
+					$('#colorbox').colorbox.resize({height: "95%"})
+					ACC.productinfopopup.loadSpiceData();
+				} else {
+					ACC.productinfopopup.loadInfoPopup(e);
+				}
+			}
+		});
+    },
+
+	loadSuccessorPopup: function (e) {
+        var getURL = e.currentTarget.href;
+        ACC.productinfopopup.openProductSuccessorPopup();
+
+        $.ajax({
+			url: getURL,
+
+			success: function (response)
+			{
+				var $cbContent = $('#cboxLoadedContent');
+
+				if($cbContent.length) {
+					$cbContent.html(response);
+					$('#colorbox').colorbox.resize()
+				}
+			}
+		});
+    },
+
+	loadSpiceData: function (e) {
+        var $colorBox = $('#colorbox'),
+			getURL = $colorBox.find('.tab-content').attr('data-spicedataurl');
+
+		$colorBox.find('.spinner').show();
+
+        $.ajax({
+			url: getURL,
+
+			success: function (response)
+			{
+				var $response = $(response),
+					$spiceData = $response.find('.js-spice-data'),
+					$spiceDocuments = $response.find('.js-spice-documents');
+
+				$colorBox.find('.spinner').hide();
+				$colorBox.find('#productDetails').append($spiceData.html());
+				$colorBox.find('#documents').append($spiceDocuments.html());
+				$('#colorbox').colorbox.resize({height: "95%"})
+			}
+		});
+    },
+
+	openProductInfoPopup: function () {
+		var title = $('.productinfo-popup-title-holder').html();
+		
+		ACC.colorbox.open(title,{
+			html: $('.productinfo-popup-content-holder').html(),
+			className: 'product-info',
+            width: 700,
+			height: "auto",
+			maxHeight: "95%",
+			reposition: false,
+            onComplete: function(){
+				$('#colorbox').find('.spinner').show();
+				ACC.colorbox.resize();
+			},
+			onCleanup: ACC.productinfopopup.onProductInfoClose
+        });
+	},
+
+	openProductSuccessorPopup: function () {
+		var title = $('.productsuccessor-popup-title-holder').html();
+
+		ACC.colorbox.open(title,{
+			html: $('.productsuccessor-popup-content-holder').html(),
+			className: 'product-successor',
+            width: "800px",
+			maxWidth: "1200px",
+			height: "400px",
+			maxHeight: "400px",
+			reposition: false
+        });
+	},
+
+	bindProductInfoPopupLink: function ()
+	{
+		$(document).on("click",'.item__product-info', function (e) {
+			ACC.productinfopopup.loadInfoPopup(e);
+			return false;
+		});
+	},
+
+	bindProductSuccessorPopupLink: function ()
+	{
+		$(document).on("click",'.item__product-successor', function (e) {
+			ACC.productinfopopup.loadSuccessorPopup(e);
+			return false;
+		});
+	},
+
+	bindProductSuccessorUpdateLink: function ()
+	{
+		$(document).on("click",'.js_update-product-successor', function (e) {
+			$(this).attr("disabled", true).find(".spinner").show();
+			$(this).siblings("a").attr("disabled", true);
+			return true;
+		});
+	},
+
+	onProductInfoClose: function() {
+    	var $colorbox = $('#colorbox'),
+			$form = $colorbox.find('#positionTexts form');
+
+    	if (!$form.length || !$form.attr('action')) {
+    		return true;
+		}
+
+		$.ajax({
+			url: $form.attr('action'),
+			async: true,
+			data: $form.serialize(),
+			method: "POST",
+			success: function (response)
+			{
+				//console.log("Update Resp: ", response);
+			}
+		});
+	},
+
+	dynamicResize: function () {
+		$("[data-auto-fit-width]").each(function () {
+			const scaledElement = $(this);
+			const scalingElement = $(scaledElement.data("auto-fit-width"));
+
+			new ResizeObserver(() => {
+				scaledElement.width(Math.floor(scalingElement.offset().left + scalingElement.width() - scaledElement.offset().left));
+			}).observe(scalingElement.get(0));
+
+			scaledElement.width(Math.floor(scalingElement.offset().left + scalingElement.width() - scaledElement.offset().left));
+		});
+
+		$("[data-auto-fit-height-of]").each(function () {
+			const scalingElement = $(this);
+			const scaledElement = $(scalingElement.data("auto-fit-height-of"));
+
+			new ResizeObserver(() => {
+				scaledElement.height(scalingElement.height());
+			}).observe(scalingElement.get(0));
+
+			scaledElement.height(scalingElement.height());
+		});
+
+		$("[data-height-to-bottom-of]").each(function () {
+			const scaledElement = $(this);
+			const scalingElement = $(scaledElement.data("height-to-bottom-of"));
+
+			if (!scalingElement.length) {
+				return;
+			}
+			new ResizeObserver(() => {
+				scaledElement.height(Math.max(0, Math.floor(scalingElement.offset().top + scalingElement.height() - scaledElement.offset().top)));
+			}).observe(scalingElement.get(0));
+
+			scaledElement.height(Math.max(0, Math.floor(scalingElement.offset().top + scalingElement.height() - scaledElement.offset().top)));
+		});
+
+		$("[data-auto-margin-top]").each(function () {
+			const scaledElement = $(this);
+			const scalingElement = $(scaledElement.data("auto-margin-top"));
+			let scalingOffsetElement = $(scalingElement.data("position-relative-to"));
+
+			if (!scalingOffsetElement.length) {
+				scalingOffsetElement = undefined;
+			}
+
+			if (!scalingElement.length) {
+				return;
+			}
+
+			const offset = parseInt(scaledElement.data("auto-margin-top-offset") || "0");
+			const min = parseInt(scaledElement.data("auto-margin-top-min") || "0");
+
+			new ResizeObserver(() => {
+				scaledElement.css("margin-top", `${Math.max(scalingElement.offset().top - (scalingOffsetElement?.offset()?.top ?? 0) + scalingElement.height() - offset, min)}px`);
+			}).observe(scalingElement.get(0));
+
+			scaledElement.css("margin-top", `${Math.max(scalingElement.offset().top - (scalingOffsetElement?.offset().top ?? 0) + scalingElement.height() - offset, min)}px`);
+		});
+
+		$("[data-discount-id]").each(function () {
+			const scalingElement = $(this);
+			const scaledElements = $(`.condition${scalingElement.data("discount-id").toString().substring("discount".length)}`);
+			const checkScale = $($(this).data("check-scale"));
+
+			if (!scaledElements.length) {
+				return;
+			}
+
+			const scaleElements = () => {
+				scaledElements.height(scalingElement.height());
+			};
+
+			new ResizeObserver(scaleElements).observe(scalingElement.get(0));
+
+			if (checkScale.length) {
+				new ResizeObserver(scaleElements).observe(checkScale.get(0));
+			}
+
+			new MutationObserver(scaleElements).observe(scalingElement.get(0), {
+				characterData: true,
+				childList: true,
+				subtree: true
+			});
+
+			scaledElements.height(scalingElement.height());
+		});
+	},
+
+	loadCasData: async function () {
+		const entriesToFetch = [];
+		const controller = new AbortController();
+		window.addEventListener("beforeunload", () => {
+			controller.abort();
+		});
+
+		$("[data-load-content]").each(function () {
+			const element = $(this);
+			const productDetails = $(element.data("product-details-target"));
+			const documents = $(element.data("documents-target"));
+
+			entriesToFetch.push(async () => {
+				const response = await fetch(element.data("load-content"), {
+					credentials: "include",
+					signal: controller.signal
+				});
+
+				const html = await response.text();
+				const parser = new DOMParser();
+				const doc = parser.parseFromString(html, 'text/html');
+				const $doc = $(doc);
+
+				const $spiceData = $doc.find('.js-spice-data');
+				const $spiceDocuments = $doc.find('.js-spice-documents');
+
+				productDetails.html($spiceData.html());
+				documents.html($spiceDocuments.html());
+			});
+		});
+
+		// Reverse tasks to pop and load from top to bottom of page
+		entriesToFetch.reverse();
+
+		const popTask = () => {
+			const task = entriesToFetch.pop();
+			if (!task) {
+				return;
+			}
+
+			task().then(() => popTask());
+		}
+
+		for (let i = 0; i < 3; i++) {
+			popTask();
+		}
+	},
+
+	registerUnfoldables: function () {
+		$("[data-unfoldable]").each(function () {
+			const unfoldable = $(this);
+			const triggers = $(`[data-unfold-wrapper="${unfoldable.attr("id")}"]`);
+			let lastTriggered = $(`.nav-item.active [data-unfold-wrapper="${unfoldable.attr("id")}"]`).get(0);
+
+			triggers.click(function () {
+				if(lastTriggered === this) {
+					unfoldable.toggleClass("hidden");
+					lastTriggered = this;
+					return;
+				}
+
+				switch(lastTriggered) {
+					case this:
+						unfoldable.toggleClass("hidden");
+						break;
+					default:
+						unfoldable.removeClass("hidden");
+						break;
+				}
+
+				lastTriggered = this;
+			});
+		});
+
+		$("[data-unfold-multiple-wrappers]").click(function (event) {
+			event.preventDefault();
+
+			$("[data-unfoldable]").each(function () {
+				const unfoldable = $(this);
+				const marked = $(unfoldable.data("mark-for-fold")).is(":checked");
+
+				if(!marked) {
+					return;
+				}
+
+				unfoldable.toggleClass("hidden");
+			});
+		})
+	},
+
+	registerSelectGroup: function () {
+		$("[data-select-all]").each(function () {
+			const masterCheckBox = $(this);
+			const identifier = `[data-sub-select="${masterCheckBox.data("select-all")}"]`;
+			const subCheckBoxes = $(identifier);
+
+			masterCheckBox.click(function () {
+				subCheckBoxes.prop("checked", masterCheckBox.is(":checked"));
+			});
+
+			subCheckBoxes.change(function () {
+				masterCheckBox.prop("checked", $(`${identifier}:checked`).length === subCheckBoxes.length);
+			})
+		});
+
+		$("[data-enable-if-selected]").each(function () {
+			const dependee = $(this);
+			const identifier = dependee.data("enable-if-selected");
+			const checkBoxes = $(`[data-sub-select="${identifier}"], [data-select-all="${identifier}"]`);
+
+			checkBoxes.change(function () {
+				const oneEnabled = checkBoxes.is(":checked");
+
+				if(oneEnabled) {
+					dependee.removeClass("disabled");
+					return;
+				}
+
+				dependee.addClass("disabled");
+			});
+
+			const oneEnabled = checkBoxes.is(":checked");
+
+			if(oneEnabled) {
+				dependee.removeClass("disabled");
+				return;
+			}
+
+			dependee.addClass("disabled");
+		})
+	},
+
+	initDocumentShowCase: function () {
+		$(".js_open_documents_showcase").click(ACC.productinfopopup.openDocumentShowCase);
+	},
+
+	openDocumentShowCase: function () {
+		const documentUrl = $("[data-documents-endpoint]").data("documents-endpoint");
+		const downloadUrl = $("[data-documents-bulk-generation-endpoint]").data("documents-bulk-generation-endpoint");
+        const getzipUrl = $("[data-get-zip-endpoint]").data("get-zip-endpoint");
+
+		const translationData = $("[data-translation-data]");
+		const documentsTranslation = translationData.data("documents-translation");
+		const documentMetadata = $("[data-document-metadata]");
+
+		ACC.colorbox.open(documentsTranslation, {
+			html: `<div id="documentShowcaseContent" class="col-lg-12" style="max-height: 500px">` +
+				`<div class="spinner" style="display: contents">` +
+					`<div class="bounce1"></div>` +
+					`<div class="bounce2"></div>` +
+					`<div class="bounce3"></div>` +
+				`</div>` +
+			`</div>`,
+			className: "document-showcase",
+			width: 1100,
+			height: "auto",
+			maxHeight: "500px",
+			reposition: false
+		});
+
+		if (!documentUrl) {
+			return;
+		}
+
+		const queryParams = new URLSearchParams();
+		const configs = [];
+
+		$("[data-documents-showcase-config]").each(function () {
+			const config = $(this);
+			const configId = config.data("documents-config-id");
+
+			queryParams.append("configIds", configId);
+			configs.push({
+				id: configId,
+				name: config.data("documents-config-name"),
+				position: config.data("documents-config-position"),
+				documents: []
+			});
+		});
+
+		$.ajax({
+			url: `${documentUrl}?${queryParams.toString()}`,
+			success: function (response) {
+				if (response.configDocuments.errors) {
+					return;
+				}
+
+				const header = $("[data-documents-showcase-header]").html();
+				const outputLanguages = response.dosOutputLanguages;
+
+				configs.forEach(config => {
+					config.documents = response.configDocuments.filter(configWithDocuments => configWithDocuments.configId === config.id)[0]?.documents || [];
+					config.documents = config.documents.filter(doc => !doc.hyperlink);
+				});
+
+				const htmlContent = `<table class="responsive-table-scroll" id="documentsTable">` +
+					header.replace("__documentConfigMaster", "documentConfigMaster") +
+					`<tbody>` +
+						configs.filter(config => config.documents.length > 0).map(config =>
+							`<tr>` +
+								`<td><input id="documentConfigCheckBox${config.id}" type="checkbox" value="${config.id}" data-document-config-checkbox="${config.position}" class="js_select-document-config" /></td>` +
+								`<td></td>` +
+								`<td>${config.position}</td>` +
+								`<td>${config.name}</td>` +
+								`<td></td>` +
+							`</tr>` +
+							config.documents.map(document =>
+								`<tr>` +
+									`<td></td>` +
+									`<td><input id="documentCheckBox${document.id}" type="checkbox" value="${document.id}" data-document-checkbox="${config.position}" class="js_select-document" /></td>` +
+									`<td></td>` +
+									`<td></td>` +
+									`<td>${document.displayName}</td>` +
+								`</tr>`).join("")
+						).join("") +
+					`</tbody>` +
+				`</table>` +
+				`<div class="row documents-footer pb-5">` +
+					`<div class="col-6">` +
+						`<label for="dosLang">` +
+							translationData.data("output-language-translation") +
+						`</label>` +
+					`</div>` +
+					`<div class="col-6">` +
+						`<select name="dosLang" data-document-language>` +
+							outputLanguages.map(language => `<option value="${language.isoCode}">${language.displayName}</option>`).join("") +
+						`</select>` +
+					`</div>` +
+					`<a data-toggle="tooltip" data-html="true"` +
+						`class="btn btn-primary"` +
+						`id="startDocumentGeneration">` +
+						translationData.data("start-generation-translation") +
+					`</a>` +
+				`</div>`;
+
+				$("#documentShowcaseContent").html(htmlContent);
+				ACC.colorbox.resize();
+
+				const masterCheckbox = $("#documentConfigMaster");
+				const configCheckboxes = $("[data-document-config-checkbox]")
+				const documentCheckboxes = $("[data-document-checkbox]");
+
+				masterCheckbox.click(function () {
+					configCheckboxes.prop("checked", masterCheckbox.is(":checked"));
+					documentCheckboxes.prop("checked", masterCheckbox.is(":checked"));
+				});
+
+				configCheckboxes.click(function () {
+					const configId = $(this).data("document-config-checkbox");
+					$(`[data-document-checkbox="${configId}"]`).prop("checked", $(this).is(":checked"));
+					masterCheckbox.prop("checked", configCheckboxes.filter(":checked").length === configCheckboxes.length);
+				});
+
+				documentCheckboxes.click(function () {
+					const configId = $(this).data("document-checkbox");
+					const configSpecificDocumentCheckboxes = $(`[data-document-checkbox="${configId}"]`);
+
+					$(`[data-document-config-checkbox="${configId}"]`).prop("checked",
+						configSpecificDocumentCheckboxes.filter(":checked").length === configSpecificDocumentCheckboxes.length);
+
+					masterCheckbox.prop("checked", configCheckboxes.filter(":checked").length === configCheckboxes.length);
+				});
+
+				$("#startDocumentGeneration").click(function () {
+					const configDocuments = [];
+
+					documentCheckboxes.each(function () {
+						if (!$(this).is(":checked")) {
+							return;
+						}
+
+						const config = configs.filter(config => $(this).data("document-checkbox") === config.position)[0];
+
+						if (!configDocuments.some(configDocument => configDocument.configId === config.id)) {
+							configDocuments.push({
+								configId: config.id,
+								directoryName: `Pos${config.position}_${config.name}`,
+								documents: []
+							});
+						}
+
+						const configDocument = configDocuments.filter(configDocument => configDocument.configId === config.id)[0];
+						const documentName = $(this).val();
+
+						configDocument.documents.push({
+							documentName: documentName,
+							suggestedFileName: documentName,
+							createDocumentInput: {
+								fields: {
+									refName: {
+										value: documentMetadata.data("ref-name")
+									},
+									refNumber: {
+										value: documentMetadata.data("ref-number")
+									},
+									refPosition: {
+										value: config.position.toString()
+									}
+								}
+							}
+						});
+					});
+
+					const oldButtonHtml = $(this).html();
+					$(this).html(`<div class="spinner" style="display: contents">` +
+						`<div class="bounce1"></div>` +
+						`<div class="bounce2"></div>` +
+						`<div class="bounce3"></div>` +
+					`</div>`);
+
+					$(this).addClass("disabled");
+
+                    fetch(`${downloadUrl}?language=${$("[data-document-language]").val()}`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "CSRFToken": $(`[name="CSRFToken"]`).val()
+                        },
+                        credentials: "include",
+                        body: JSON.stringify(configDocuments)
+                    }).then(response => {
+
+
+                        $(this).html(oldButtonHtml);
+                        $(this).removeClass("disabled");
+
+                        if (response.status === 504) {
+                            window.alert(translationData.data("error-time-limit-exceeded-translation"));
+                            return;
+                        }
+
+                        if (response.status !== 200) {
+                            return;
+                        }
+
+                        response.json().then(body => {
+                            const tableHeader = $('[data-documents-failed]').html();
+                            if (body.failedDocuments?.length) {
+                                const renderObj = Object.values(body.failedDocuments.reduce((result, current) => {
+                                    if(!result[current.configId]) {
+                                        const currentConf = configs.find(config => config.id === current.configId)
+                                        result[current.configId] = {};
+                                        result[current.configId].configName = currentConf.name;
+                                        result[current.configId].position = currentConf.position;
+                                        result[current.configId].documents = [];
+                                    }
+
+                                    const displayName = configs.find(c => current.configId === c.id)
+                                        ?.documents.find(doc => doc.id === current.documentName)
+                                        ?.displayName ?? current.documentName;
+
+                                    result[current.configId].documents.push(displayName);
+                                    return result;
+                                }, {})).sort((a, b) => a.position === b.position
+                                    ? 0
+                                    : a.position < b.position ? -1 : 1
+                                );
+
+                                const failedhtmlContent = `<table class="responsive-table-scroll mt-5" id="documentsTable">` +
+                                    tableHeader +
+                                    `<tbody>` +
+                                    renderObj.map(conf => {
+                                        return `<tr>` +
+                                            `<td>${conf.position}</td>` +
+                                            `<td>${conf.configName}</td>` +
+                                            `<td></td>` +
+                                            `</tr> ` + conf.documents.map(doc => `<tr>` +
+                                                `<td></td>` +
+                                                `<td></td>` +
+                                                `<td>${doc}</td>`).join("") +
+                                            `</tr>`
+                                    }).join("") + `</tbody> </table>`;
+
+                                const failedHeader = translationData.data("failed-document-translation");
+
+                                ACC.colorbox.open(failedHeader, {
+                                    html: `${failedhtmlContent}`,
+                                    className: "document-showcase",
+                                    width: 1100,
+                                    height: "auto",
+                                    maxHeight: "500px",
+                                    reposition: false
+                                });
+                            }
+
+                            fetch(`${getzipUrl}?language=${$("[data-document-language]").val()}`, {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "CSRFToken": $(`[name="CSRFToken"]`).val()
+                                },
+                                credentials: "include",
+                                body: JSON.stringify({
+                                    zipUrl: body.zipurl
+                                })
+                            }).then(documentResponse => {
+                                const filename = documentResponse.headers.get("Content-disposition")?.split(";")?.at(1)?.split("=")?.at(1);
+
+                                documentResponse.blob().then(blob => {
+                                    const tempAnchor = document.createElement("a");
+                                    tempAnchor.href = window.URL.createObjectURL(blob);
+                                    tempAnchor.download = filename;
+                                    tempAnchor.click();
+                                });
+                            });
+                        });
+                    });
+				});
+			}
+		});
+	}
+};

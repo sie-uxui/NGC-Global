@@ -1,0 +1,526 @@
+var ACC = ACC || {}; // make sure ACC is available
+
+if ($("#quickOrder").length > 0) {
+    ACC.quickorder = {
+        _autoload: [
+            "bindClearQuickOrderRow",
+            "bindAddSkuInputRow",
+            "bindResetFormBtn",
+            "bindAddToCartClick",
+            "bindAddToProjectClick",
+            "bindProjectSelectChanged"
+        ],
+
+        $quickOrderContainer: $('.js-quick-order-container'),
+        $quickOrderMinRows: Number($('.js-quick-order-container').data('quickOrderMinRows')),
+        $quickOrderMaxRows: Number($('.js-quick-order-container').data('quickOrderMaxRows')),
+        $productExistsInFormMsg: $('.js-quick-order-container').data('productExistsInFormMsg'),
+        $quickOrderLeavePageMsg: $('#quickOrder').data('gridConfirmMessage'),
+        $hiddenSkuInput: 'input.js-hidden-sku-field',
+        $hiddenUniqueIdInput: 'input.js-hidden-unique-id-field',
+        $hiddenConfigurableInput: 'input.js-hidden-configurable-field',
+        $hiddenConfigId: 'input.js-hidden-configid',
+        $addToCartBtn: $('#js-add-to-cart-quick-order-btn-top, #js-add-to-cart-quick-order-btn-bottom'),
+        $addToProjectBtn: $('#js-add-to-project-quick-order-btn-top, #js-add-to-project-quick-order-btn-bottom'),
+        $resetFormBtn: $('#js-reset-quick-order-form-btn-top, #js-reset-quick-order-form-btn-bottom'),
+        $productInfoContainer: '.js-product-info',
+        $skuInputField: '.js-sku-input-field',
+        $qtyInputField: '.js-quick-order-qty',
+        $jsLiContainer: 'li.js-li-container',
+        $removeQuickOrderRowBtn: '.js-remove-quick-order-row',
+        $skuValidationContainer: '.js-sku-validation-container',
+        $qtyValidationContainer: '.js-qty-validation-container',
+        $productItemTotal: '.js-quick-order-item-total',
+        $classHasError: 'has-error',
+        $quickOrderProjectSelect: 'body.page-quickOrderPage .js-project-selector-select',
+
+        bindResetFormBtn: function () {
+            ACC.quickorder.$resetFormBtn.on("click", ACC.quickorder.clearForm);
+        },
+
+        bindAddToCartClick: function () {
+            ACC.quickorder.$addToCartBtn.on("click", ACC.quickorder.handleAddToCart);
+        },
+
+        bindAddToProjectClick: function () {
+            ACC.quickorder.$addToProjectBtn.on("click", ACC.quickorder.handleAddToProject);
+        },
+
+        bindAddSkuInputRow: function () {
+            $(ACC.quickorder.$skuInputField).on("focusin", ACC.quickorder.addInputRow).on("focusout keydown", ACC.quickorder.handleFocusOutOnSkuInput);
+        },
+
+        bindClearQuickOrderRow: function () {
+            $(ACC.quickorder.$removeQuickOrderRowBtn).on("mousedown", ACC.quickorder.clearQuickOrderRow);
+        },
+
+        bindProjectSelectChanged: function () {
+            $(ACC.quickorder.$quickOrderProjectSelect).on("change", ACC.quickorder.changeProject);
+        },
+
+        handleAddToCart: function () {
+            ACC.quickorder.addToLoading(true)
+                .done(ACC.quickorder.addToCart);
+        },
+
+        handleAddToProject: function () {
+            ACC.quickorder.addToLoading(true)
+                .done(ACC.quickorder.addToProject);
+        },
+
+        addToCart: function () {
+            $.ajax({
+                url: ACC.quickorder.$quickOrderContainer.data('quickOrderAddToCartUrl'),
+                type: 'POST',
+                dataType: 'json',
+                contentType: 'application/json',
+                data: ACC.quickorder.getJSONDataForAddToCart(),
+                async: true,
+                success: function (response) {
+                    ACC.quickorder.handleAddToCartSuccess(response);
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    // log the error to the console
+                    console.log("The following error occurred: " + textStatus, errorThrown);
+                }
+            });
+        },
+
+        addToProject: function () {
+            var projectCode = $('.js-project-selector-select').getSelected();
+            $.ajax({
+                url: ACC.quickorder.$quickOrderContainer.data('quickOrderAddToProjectUrl') + '?projectCode=' + projectCode,
+                type: 'POST',
+                dataType: 'json',
+                contentType: 'application/json',
+                data: ACC.quickorder.getJSONDataForAddToCart(),
+                async: true,
+                success: function (response) {
+                    ACC.quickorder.handleAddToCartSuccess(response);
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    // log the error to the console
+                    console.log("The following error occurred: " + textStatus, errorThrown);
+                }
+            });
+        },
+
+        handleAddToCartSuccess: function (response) {
+            if ($(response.quickOrderErrorData).length > 0) {
+                ACC.quickorder.disableBeforeUnloadEvent();
+            }
+            var lookup = {};
+            response.quickOrderErrorData.forEach(function (el) {
+                lookup[el.sku] = el.errorMsg;
+            });
+            var skus =[];
+
+            $(ACC.quickorder.$qtyInputField).each(function () {
+                var parentLi = ACC.quickorder.getCurrentParentLi(this);
+                var sku = ACC.quickorder.findElement(parentLi, ACC.quickorder.$skuInputField).val();
+                var errorMsg = lookup[sku];
+                skus.push(sku);
+
+                if (errorMsg) {
+                    ACC.quickorder.findElement(parentLi, ACC.quickorder.$skuValidationContainer).text(errorMsg);
+                }
+                else {
+                    ACC.quickorder.findElement(parentLi, ACC.quickorder.$removeQuickOrderRowBtn).trigger("mousedown");
+                }
+            });
+
+            ACC.quickorder.handleBeforeUnloadEvent();
+            ACC.quickorder.addToLoading(false);
+            ACC.quickorder.enableDisableAddToCartBtn();
+            ACC.quickorder.enableDisableAddToProjectBtn();
+            ACC.product.displayAddToCartPopup(response, null, null, null, skus);
+        },
+
+        addToLoading: function (show) {
+            var dfd = $.Deferred();
+
+            var addtoCartButton = $(".productFormAddToCartButton");
+            var addtoProjectButton = $(".productFormAddToProjectButton");
+            var addtoProjectSpinner = $(".spinner");
+
+            if(show) {
+                addtoCartButton.prop("disabled",true);
+                addtoProjectButton.prop("disabled",true);
+                addtoProjectSpinner.show();
+            }
+            else {
+                if(ACC.quickorder.shouldAddToCartBeEnabled()) addtoCartButton.prop("disabled",false);
+                if(ACC.quickorder.shouldAddToProjectBeEnabled()) addtoProjectButton.prop("disabled",false);
+                addtoProjectSpinner.hide();
+            }
+
+            return dfd.resolve(null);
+        },
+
+        getJSONDataForAddToCart: function () {
+            var skusAsJSON = [];
+            $(ACC.quickorder.$qtyInputField).each(function () {
+                var qty = Number($(this).val());
+                if (qty > 0) {
+                    var sku = jQuery.trim(ACC.quickorder.findElementInCurrentParentLi(this, ACC.quickorder.$skuInputField).val()),
+                        entry = {"product": {"code": sku}};
+                    if (ACC.quickorder.isInteger(qty)) {
+                        entry.quantity = qty;
+                    } else {
+                        entry.doubleQuantity = qty;
+                    }
+                    skusAsJSON.push(entry);
+                }
+            });
+            return JSON.stringify({"cartEntries": skusAsJSON});
+        },
+
+        isInteger: Number.isInteger || function(value) {
+            return typeof value === 'number' &&
+                isFinite(value) &&
+                Math.floor(value) === value;
+        },
+
+        handleFocusOutOnSkuInput: function (event) {
+            var key = event.charCode ? event.charCode : event.keyCode ? event.keyCode : 0;
+            if (key == 13) {
+                $(event.target).focusout();
+            }
+            if (event.type == "focusout") {
+                ACC.quickorder.handleGetProduct(event);
+                ACC.quickorder.handleBeforeUnloadEvent();
+                ACC.quickorder.enableDisableAddToCartBtn();
+                ACC.quickorder.enableDisableAddToProjectBtn();
+            }
+        },
+
+        handleFocusOutOnQtyInput: function (event) {
+            var key = event.charCode ? event.charCode : event.keyCode ? event.keyCode : 0;
+            if (key == 13) {
+                event.preventDefault();
+                var parentLi = ACC.quickorder.getCurrentParentLi(event.target);
+                parentLi.next().find(ACC.quickorder.$skuInputField).focus();
+                $(event.target).focusout();
+            }
+            if (event.type == "focusout") {
+                ACC.quickorder.validateAndUpdateItemTotal(event);
+                ACC.quickorder.enableDisableAddToCartBtn();
+                ACC.quickorder.enableDisableAddToProjectBtn();
+            }
+        },
+
+        clearForm: function () {
+            window.location.reload();
+        },
+
+        validateAndUpdateItemTotal: function (event) {
+            var parentLi = ACC.quickorder.getCurrentParentLi(event.target);
+            var qtyValue = jQuery.trim(ACC.productorderform.filterSkuEntry($(event.target).val())).replace(',', '.');
+            if (isNaN(qtyValue) || qtyValue == "") {
+                qtyValue = 0;
+                $(event.target).removeClass(ACC.quickorder.$classHasError);
+                ACC.quickorder.findElement(parentLi, ACC.quickorder.$qtyValidationContainer).text('');
+                $(event.target).val(0);
+            }
+            else {
+                qtyValue = Number(qtyValue);
+                $(event.target).val(qtyValue);
+                var maxQty = jQuery.trim(ACC.quickorder.findElement(parentLi, ACC.quickorder.$qtyInputField).data('maxProductQty'));
+                var stockLevelStatus = jQuery.trim(ACC.quickorder.findElement(parentLi, ACC.quickorder.$qtyInputField).data('stockLevelStatus'));
+                maxQty = (($.isEmptyObject(maxQty) || maxQty == 0) && stockLevelStatus == "inStock") ? "FORCE_IN_STOCK" : Number(maxQty);
+                if (!isNaN(maxQty) && qtyValue > maxQty) {
+                    $(event.target).addClass(ACC.quickorder.$classHasError);
+                    var qtyValidationContainer = ACC.quickorder.findElement(parentLi, ACC.quickorder.$qtyValidationContainer);
+                    qtyValidationContainer.text(qtyValidationContainer.data('maxProductQtyMsg'));
+                    qtyValue = maxQty;
+                    $(event.target).val(maxQty);
+                }
+                else {
+                    $(event.target).removeClass(ACC.quickorder.$classHasError);
+                    ACC.quickorder.findElement(parentLi, ACC.quickorder.$qtyValidationContainer).text('');
+                }
+            }
+        },
+
+        clearQuickOrderRow: function () {
+            var quickOrderMinRows = ACC.quickorder.$quickOrderMinRows;
+            var parentLi = ACC.quickorder.getCurrentParentLi(this);
+            if ($('.js-ul-container li.js-li-container').length > quickOrderMinRows) {
+                parentLi.remove();
+                ACC.quickorder.bindClearQuickOrderRow();
+            }
+            else {
+                ACC.quickorder.findElement(parentLi, ACC.quickorder.$productInfoContainer).remove();
+                ACC.quickorder.findElement(parentLi, ACC.quickorder.$skuValidationContainer).text('');
+                ACC.quickorder.findElement(parentLi, ACC.quickorder.$skuInputField).val('');
+                ACC.quickorder.findElement(parentLi, ACC.quickorder.$hiddenSkuInput).val('');
+            }
+            ACC.quickorder.enableDisableAddToCartBtn();
+            ACC.quickorder.enableDisableAddToProjectBtn();
+            ACC.quickorder.handleBeforeUnloadEvent();
+        },
+
+        changeProject: function() {
+            $(ACC.quickorder.$quickOrderProjectSelect).val($(this).val());
+            ACC.quickorder.enableDisableAddToProjectBtn();
+        },
+
+        addInputRow: function (event) {
+
+            if ($('.js-quick-order-container li.js-li-container:last-child').find(ACC.quickorder.$skuInputField).is($(event.target)) &&
+                $(ACC.quickorder.$jsLiContainer).length < ACC.quickorder.$quickOrderMaxRows) {
+                var liClone = $('.js-quick-order-container li.js-li-container:first').clone();
+                ACC.quickorder.findElement(liClone, ACC.quickorder.$productInfoContainer).remove();
+                ACC.quickorder.findElement(liClone, ACC.quickorder.$skuValidationContainer).text('');
+                ACC.quickorder.findElement(liClone, ACC.quickorder.$hiddenSkuInput).val('');
+                var currentSkuInputField = ACC.quickorder.findElement(liClone, ACC.quickorder.$skuInputField);
+                currentSkuInputField.val('');
+                currentSkuInputField.focusin(ACC.quickorder.addInputRow).focusout(ACC.quickorder.handleFocusOutOnSkuInput).keydown(ACC.quickorder.handleFocusOutOnSkuInput);
+                ACC.quickorder.findElement(liClone, ACC.quickorder.$removeQuickOrderRowBtn).click(ACC.quickorder.clearQuickOrderRow);
+                $('.js-ul-container').append(liClone);
+            }
+        },
+
+        handleGetProduct: function (event) {
+            var parentLi = ACC.quickorder.getCurrentParentLi(event.target);
+            var productCode = $.trim(event.target.value);
+            $(event.target).val(productCode);
+            if (!ACC.quickorder.isCurrentSkuSameAsPrevious(parentLi, productCode)) {
+                if (productCode.length > 0) {
+                    ACC.quickorder.findElement(parentLi, ACC.quickorder.$productInfoContainer).remove();
+
+                    if (ACC.quickorder.isDuplicateSku(event.target, productCode)) {
+                        ACC.quickorder.findElement(parentLi, ACC.quickorder.$skuValidationContainer).text(ACC.quickorder.$productExistsInFormMsg);
+                    }
+                    else {
+                        ACC.quickorder.addToLoading(true);
+                        ACC.quickorder.getAndDisplayProductInfo(event, parentLi, productCode);
+                    }
+                    ACC.quickorder.findElement(parentLi, ACC.quickorder.$hiddenSkuInput).val(productCode);
+                }
+                else {
+                    $(event.target).removeClass(ACC.quickorder.$classHasError);
+                    ACC.quickorder.findElement(parentLi, ACC.quickorder.$skuValidationContainer).text('');
+                    ACC.quickorder.findElement(parentLi, ACC.quickorder.$productInfoContainer).remove();
+                }
+            }
+        },
+
+        isCurrentSkuSameAsPrevious: function (parentLi, productCode) {
+            return ACC.quickorder.findElement(parentLi, ACC.quickorder.$hiddenSkuInput).val() == productCode;
+        },
+
+        isDuplicateSku: function (currentInput, userInput) {
+            var exists = false;
+            $(ACC.quickorder.$skuInputField).each(function () {
+                if ($(this).val() == userInput && !$(this).is($(currentInput))) {
+                    var parentLi = ACC.quickorder.getCurrentParentLi($(this));
+                    var configurable = ACC.quickorder.findElement(parentLi, ACC.quickorder.$hiddenConfigurableInput).val();
+                    var configid = ACC.quickorder.findElement(parentLi, ACC.quickorder.$hiddenConfigId).val();
+                    var uniqueId = ACC.quickorder.findElement(parentLi, ACC.quickorder.$hiddenUniqueIdInput).val();
+                    if (configurable != "true" || uniqueId == userInput)
+                    {
+                        exists = true;
+                        return false;
+                    }
+                }
+            });
+            return exists;
+        },
+
+        getAndDisplayProductInfo: function (event, parentLi, productCode) {
+            var url = ACC.config.encodedContextPath + '/quickOrder/productInfo?code=' + encodeURIComponent(productCode);
+            if(ACC.webquote.isWebQuotePage()) {
+                ACC.webquote.handlerFindProductButton();
+            }
+            $.getJSON(url, function (result) {
+                if (result.errorMsg === "no-sap-object-key") {
+                    $(event.target).removeClass(ACC.quickorder.$classHasError);
+                    $addSpecificProductForm = $('.add-specific-product-form.configure_form');
+                    $submitButton = $addSpecificProductForm.find('.js-specific-product-submit');
+
+                    $submitButton.css('display', '');
+                    $submitButton.hide();
+
+                    $addSpecificProductForm.find(".js-find-product").hide();
+                    const reconfigureButton = $addSpecificProductForm.find(".js-reconfigure-product")
+                    reconfigureButton.show();
+
+                    reconfigureButton.find(".spinner").hide();
+                    reconfigureButton.click(function () {
+                        window.location.href = "/spc/" + result.configId + "/reconfigure";
+                        reconfigureButton.find(".spinner").show();
+                        reconfigureButton.prop("disabled", true);
+                    });
+                }
+                else if (result.errorMsg != null && result.errorMsg.length > 0) {
+                    $(event.target).addClass(ACC.quickorder.$classHasError);
+                    ACC.quickorder.addToLoading(false);
+                    ACC.quickorder.findElement(parentLi, ACC.quickorder.$skuValidationContainer).text(result.errorMsg);
+                    if(ACC.webquote.isWebQuotePage()) {
+                        ACC.webquote.handlerFindSpecificProduct(false, event);
+                    }
+                }
+                else {
+                    $(event.target).removeClass(ACC.quickorder.$classHasError);
+                    ACC.quickorder.findElement(parentLi, ACC.quickorder.$skuValidationContainer).text(result.numberNotMatchMsg);
+                    $('#quickOrderRowTemplate').tmpl(result).insertAfter(ACC.quickorder.findElement(parentLi, '.js-sku-container'));
+                    var qtyInputField = ACC.quickorder.findElement(parentLi, ACC.quickorder.$qtyInputField);
+                    qtyInputField.focusout(ACC.quickorder.handleFocusOutOnQtyInput).keydown(ACC.quickorder.handleFocusOutOnQtyInput);
+                    var stockLevelStatus = result.sapProductInfo.product.stock.stockLevelStatus.code;
+                    if(result.productbyconfigid){
+                        $(document).on('submit', '.add-specific-product-form.configure_form', function(event) {
+                            event.preventDefault();
+                            let $form = $(this);
+                            let atnInput = $form.find('input[name="atn"]');
+                            if (!atnInput.length) {
+                                atnInput = $('<input>');
+                                atnInput.appendTo($form);
+                            }
+
+                            atnInput.attr({
+                                type: 'hidden',
+                                name: 'atn',
+                                value: result.sapProductInfo.uniqueId
+                            });
+
+                            this.submit()
+                        })
+                    }
+                    if (stockLevelStatus == "outOfStock") {
+                        qtyInputField.val(0);
+                        qtyInputField.prop('disabled', true);
+                    }
+                    else {
+                        qtyInputField.focus().select();
+                    }
+                    ACC.quickorder.addToLoading(false);
+                    ACC.quickorder.enableDisableAddToCartBtn();
+                    ACC.quickorder.enableDisableAddToProjectBtn();
+                    if(ACC.webquote.isWebQuotePage()) {
+                        ACC.webquote.handlerFindSpecificProduct(true, event);
+                    }
+
+                    if(result.productbyconfigid) {
+                        $addSpecificProductForm = $('.add-specific-product-form.configure_form');
+                        $submitButton = $addSpecificProductForm.find('.js-specific-product-submit');
+
+                        if(!result.complete || !result.consistent){
+                            $submitButton.css('display', '');
+                            $submitButton.hide();
+
+                            const reconfigureButton = $addSpecificProductForm.find(".js-reconfigure-product")
+                            reconfigureButton.show();
+
+                            reconfigureButton.click(function () {
+                                window.location.href = "/spc/" + result.configId + "/reconfigure";
+                                reconfigureButton.find(".spinner").show();
+                                reconfigureButton.prop("disabled", true);
+                            });
+                        }else{
+                            $submitButton.css('display', 'block');
+                            $submitButton.show();
+                        }
+                    }
+                }
+            });
+        },
+
+        handleBeforeUnloadEvent: function () {
+            if (ACC.quickorder.isAnySkuPresent()) {
+                ACC.quickorder.disableBeforeUnloadEvent();
+                ACC.quickorder.enableBeforeUnloadEvent();
+            }
+            else {
+                ACC.quickorder.disableBeforeUnloadEvent();
+            }
+        },
+
+        disableBeforeUnloadEvent: function () {
+            $(window).off('beforeunload', ACC.quickorder.beforeUnloadHandler);
+        },
+
+        enableBeforeUnloadEvent: function () {
+            $(window).on('beforeunload', ACC.quickorder.beforeUnloadHandler);
+        },
+
+        beforeUnloadHandler: function () {
+            return ACC.quickorder.$quickOrderLeavePageMsg;
+        },
+
+        enableDisableAddToCartBtn: function () {
+            var addToCartButtonEnabled = ACC.quickorder.shouldAddToCartBeEnabled();
+
+            // if there are no items to add, disable addToCartBtn, otherwise, enable it
+            if (addToCartButtonEnabled) {
+                ACC.quickorder.$addToCartBtn.removeAttr('disabled');
+            } else {
+                ACC.quickorder.$addToCartBtn.attr('disabled', 'disabled');
+            }
+        },
+
+        enableDisableAddToProjectBtn: function () {
+            var addToProjectButtonEnabled = ACC.quickorder.shouldAddToCartBeEnabled();
+            addToProjectButtonEnabled = addToProjectButtonEnabled && $('.js-project-selector-select').val() != null;
+
+            // if there are no items to add, disable $addToProjectBtn, otherwise, enable it
+            if (addToProjectButtonEnabled) {
+                ACC.quickorder.$addToProjectBtn.removeAttr('disabled');
+            } else {
+                ACC.quickorder.$addToProjectBtn.attr('disabled', 'disabled');
+            }
+        },
+
+        shouldAddToCartBeEnabled: function () {
+            var sum = 0;
+            var enable = false;
+            $(ACC.quickorder.$qtyInputField).each(function () {
+                var str = this.value.trim();  // .trim() may need a shim
+                if (str) {   // don't send blank values to `parseInt`
+                    if (str.indexOf(".") > 0 || str.indexOf(",") > 0) {
+                        sum += parseFloat(str);
+                    } else {
+                        sum += parseInt(str, 10);
+                    }
+                }
+                if (sum >= 1) {
+                    enable = true;
+                    return false;
+                }
+            });
+            return enable;
+        },
+
+        shouldAddToProjectBeEnabled: function () {
+            var shouldAddToCartBeEnabled = ACC.quickorder.shouldAddToCartBeEnabled();
+
+
+
+            return shouldAddToCartBeEnabled;
+        },
+
+        isAnySkuPresent: function () {
+            var present = false;
+            $(ACC.quickorder.$skuInputField).each(function () {
+                var str = jQuery.trim(this.value);  // .trim() may need a shim
+                if (str) {
+                    present = true;
+                    return false;
+                }
+            });
+            return present;
+        },
+
+        getCurrentParentLi: function (currentElement) {
+            return $(currentElement).closest(ACC.quickorder.$jsLiContainer);
+        },
+
+        findElement: function (currentElement, toFind) {
+            return $(currentElement).find(toFind);
+        },
+
+        findElementInCurrentParentLi: function (currentElement, toFind) {
+            return $(currentElement).closest(ACC.quickorder.$jsLiContainer).find(toFind);
+        }
+    };
+}

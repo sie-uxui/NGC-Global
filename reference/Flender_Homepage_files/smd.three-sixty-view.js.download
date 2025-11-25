@@ -1,0 +1,25 @@
+ACC.threesixty = {
+
+    _autoload: [
+        "bindLoadEvent"
+    ],
+
+    showThreeSixtyViewer : function () {
+        var threeSixtyImage = $('#three-sixty__image');
+		threeSixtyImage.reel({
+			images: threeSixtyImage.data("images"),
+			frames: threeSixtyImage.data("frames"),
+			frame: threeSixtyImage.data("frame"),
+			rows: threeSixtyImage.data("rows"),
+			row: threeSixtyImage.data("row"),
+			speed: 0.1
+		})
+    },
+
+    bindLoadEvent: function () {
+        var threeSixtyContainer = $('.js-three-sixty');
+        if(threeSixtyContainer.length) {
+            ACC.threesixty.showThreeSixtyViewer();
+        }
+    }
+};

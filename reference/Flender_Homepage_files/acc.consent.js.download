@@ -1,0 +1,172 @@
+ACC.consent = {
+    _autoload: [
+        ["bindSendConsent", $("#consent-management-form").length != 0],
+        ["bindToggleConsentTemplateDescription", $("#consent-management-form").length != 0],
+        ["bindToggleConsentNecessary", $("#consent-management-form").length != 0],
+        "bindConsentClick",
+        ["bindConsentManagementDialog", $('.consentmanagement-bar').length != 0 && $('#cookies_necessary').length != 0]
+    ],
+
+    bindSendConsent: function () {
+        var consentCheckbox = $('#consent-management-form').find('input.toggle-button__input');
+        //consentCheckbox.removeAttr('disabled');
+
+        consentCheckbox.click(function () {
+            var consentId = $(this).prop('id');
+            var isConsentGiven = $(this).is(':checked');
+            var buttonId = (isConsentGiven ? '#give-consent-button-' : '#withdraw-consent-button-') + consentId;
+            var $consentBtn = $(document).find(buttonId);
+
+            $consentBtn.trigger('click');
+            consentCheckbox.attr('disabled', 'disabled');
+
+            $consentBtn.on('keydown', function(event) {
+                if (event.keyCode === 13 || event.keyCode === 32) {
+                    event.preventDefault();
+                    $consentBtn.trigger('click');
+                    consentCheckbox.attr('disabled', 'disabled');
+                }
+            });
+        });
+
+        // open active accordions
+        consentCheckbox.each(function() {
+            if($(this).is(':checked')) {
+                $(this).closest('.consent-management-list__header').find('.collapsed').click();
+            }
+        });
+    },
+
+    bindToggleConsentTemplateDescription: function () {
+
+        var accordion = $('#consent-management-form').find('[data-behavior="accordion"]');
+        var expandedClass = 'is-expanded';
+
+        $.each(accordion, function() {
+
+            var accordionItems = $(this).find('[data-binding="expand-accordion-item"]');
+
+            $.each(accordionItems, function() {
+                var $this = $(this);
+                var triggerBtn = $this.find('[data-binding="expand-accordion-trigger"]');
+
+                var setHeight = function(nV) {
+
+                    var innerContent = nV.find('.consent-management-list__content-inner')[0],
+                        maxHeight = $(innerContent).outerHeight(),
+                        content = nV.find('.consent-management-list__content')[0];
+
+                    if (!content.style.height || content.style.height === '0px') {
+                        $(content).css('height', maxHeight);
+                    } else {
+                        $(content).css('height', '0px');
+                    }
+                };
+
+                var toggleClasses = function(event) {
+                    var clickedItem = event.currentTarget;
+                    var currentItem = $(clickedItem).parent();
+                    var clickedContent = $(currentItem).find('.consent-management-list__content')
+                    $(currentItem).toggleClass(expandedClass);
+                    setHeight(currentItem);
+
+                    if ($(currentItem).hasClass('is-expanded')) {
+                        $(clickedItem).attr('aria-selected', 'true');
+                        $(clickedItem).attr('aria-expanded', 'true');
+                        $(clickedContent).attr('aria-hidden', 'false');
+
+                    } else {
+                        $(clickedItem).attr('aria-selected', 'false');
+                        $(clickedItem).attr('aria-expanded', 'false');
+                        $(clickedContent).attr('aria-hidden', 'true');
+                    }
+                }
+
+                triggerBtn.on('click', function(event) {
+                    event.preventDefault();
+                    toggleClasses(event);
+                });
+
+                // keyboard navigation
+                $(triggerBtn).on('keydown', function(event) {
+                    if (event.keyCode === 13 || event.keyCode === 32) {
+                        event.preventDefault();
+                        toggleClasses(event);
+                    }
+                });
+            });
+
+        });
+
+    },
+
+    bindToggleConsentNecessary: function () {
+
+        var $checkboxNecessary = $('#cookies_necessary');
+        var $checkboxNecessaryForm = $('#give-consent-button-cookies_necessary').closest('form');
+
+        if(!$checkboxNecessary.prop("checked")) {
+            $checkboxNecessaryForm.submit();
+        }
+
+    },
+
+    bindConsentClick:function(){
+        $('.consent-accept').on("click",function(){
+            ACC.consent.changeConsentState(this, false);
+        });
+        $('.consent-accept--all').on("click",function(){
+            ACC.consent.changeConsentState(this, true);
+        });
+    },
+
+    changeConsentState:function(element, all){
+        if(all) {
+            $('.consent-management-list input').each(function() {
+                $(this).prop("checked", true);
+            });
+        }
+
+        var selected = [], deferrer=$.Deferred();
+        deferrer.resolve();
+
+        $('.consent-management-list input:checked').each(function() {
+            selected.push($(this).attr('name'));
+        });
+
+        $.each(selected,function(ix,select) {
+            deferrer=deferrer.pipe( function() {
+                return ACC.consent.ajaxSetConsentCookie(select);
+            })
+        });
+
+        deferrer.done(function() {
+            location.reload();
+        });
+    },
+
+    ajaxSetConsentCookie:function(select){
+        console.log(select);
+        return $.ajax({
+            url: ACC.config.encodedContextPath+"/anonymous-consent/"+encodeURIComponent(select)+"?consentState=GIVEN",
+            type: 'POST'
+        });
+    },
+
+    bindConsentManagementDialog: function () {
+    	ACC.colorbox.open($('.consent-management-dialog:first').data('dialogTitle'),{
+		 	inline: true,
+			href: "#consent-management-alert .consent-management-dialog:first",
+			close: false,
+            escKey: false,
+            overlayClose: false,
+			width:"960px",
+            onComplete: function(){
+                ACC.colorbox.resize();
+            }
+		});
+    }
+};
+
+
+

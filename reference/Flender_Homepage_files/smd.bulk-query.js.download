@@ -1,0 +1,266 @@
+ACC.productBulkQuery = {
+
+    _autoload: [
+        "bindTriggerLink",
+        "bindEditPopupLink",
+        "bindConfirmPopupLink",
+        "bindErrorPopupLink",
+        "bindEditPopupSaveButton",
+        "bindReloadPageAjax",
+        ["bindExportConfiguration", $(".js-product-bulk-query-export-configuration-update").length != 0],
+        "bindGlobalExport"
+    ],
+
+    exportConfigurationObject: {},
+
+    bindTriggerLink: function () {
+        $(document).on("click", '.js-bulk-query-trigger', function (e) {
+            var $link = $(e.currentTarget);
+            $link.addClass("bulk-query-trigger-animated")
+        });
+    },
+
+    bindEditPopupLink: function () {
+        $(document).on("click", '.js_edit-bulk-query-popup-link', function (e) {
+            var $link = $(e.currentTarget),
+                bulkQueryName = $link.data('bulk-query-name'),
+                bulkQueryUid = $link.data('bulk-query-uid'),
+                bulkQueryExportLanguage = $link.data('bulk-query-export-language'),
+                bulkQueryPriceDate = $link.data('bulk-query-price-date'),
+                cb = function () {
+                    var $form = $('#colorbox form.edit-bulk-query-designation');
+                    $form.find("input[name='newName']").val(bulkQueryName);
+                    $form.find("select[name='newExportLanguage']").val(bulkQueryExportLanguage);
+                    $form.find("input[name='productBulkQueryUid']").val(bulkQueryUid);
+                    $form.find(".js-bulkQueryStartDate").val(bulkQueryPriceDate);
+                };
+            ACC.productBulkQuery.openPopup("edit", cb, "edit-popup");
+            return false;
+        });
+    },
+
+    bindConfirmPopupLink: function () {
+        $(document).on("click", '.js_confirm-remove-bulk-quote', function (e) {
+            var $link = $(e.currentTarget),
+                removeLink = $link.data('bulk-query-remove-link'),
+                cb = function () {
+                    var $removeLink = $("#colorbox .js_remove-bulk-quote");
+                    $removeLink.attr("href", removeLink);
+                };
+            ACC.productBulkQuery.openPopup("remove", cb, "remove-popup");
+            return false;
+        });
+    },
+
+    bindErrorPopupLink: function () {
+        $(document).on("click", '.js_error-bulk-quote', function (e) {
+            var $link = $(e.currentTarget),
+                bulkQueryErrorName = $link.data('bulk-query-error-name'),
+                bulkQueryErrorText = $link.next(".bulk-query-error-text").html(),
+                bulkQueryErrorSave = $link.data("bulk-query-error-save"),
+                cb = function () {
+                    var $bulkQueryErrorName = $("#colorbox .bulk-query-error-modal-name");
+                    var $bulkQueryErrorText = $("#colorbox .bulk-query-error-modal-text");
+                    var $bulkQueryErrorSave = $("#colorbox .bulk-query-error-modal-save");
+                    $bulkQueryErrorName.html(bulkQueryErrorName);
+                    $bulkQueryErrorText.html(bulkQueryErrorText);
+                    $bulkQueryErrorSave.attr("href", bulkQueryErrorSave);
+                    ACC.colorbox.resize();
+                };
+            ACC.productBulkQuery.openPopup("error", cb, "error-popup");
+            return false;
+        });
+    },
+
+    bindEditPopupSaveButton: function () {
+        $(document).on("click", '.js_edit-bulk-save-button', function (e) {
+            // check price date
+            if (ACC.productBulkQuery.isPriceDateValid()) {
+                $(this).attr("disabled", "disabled");
+                $(this).closest("form").submit();
+            } else {
+                var visibleInputField = $('.js-bulkQueryStartDate');
+                var errorMsg = $('.js-toggleErrorMsg');
+                visibleInputField.addClass("error");
+                errorMsg.addClass("error");
+                errorMsg.show();
+                ACC.colorbox.resize();
+            }
+        });
+    },
+
+    isPriceDateValid: function () {
+        // get max price date
+        var visibleInputField = $('.js-bulkQueryStartDate');
+        var maxDateDays = visibleInputField.data('maxDate');
+        if (maxDateDays === '') {
+            return true;
+        }
+        var maxDate = new Date();
+        maxDate.setDate(maxDate.getDate() + maxDateDays);
+
+        // get input price date
+        var valueInputField = $('.js-bulkQueryStartDateValue');
+        var inputDate = $.datepicker.parseDate("yy-mm-dd", valueInputField.attr('value'));
+
+        // compare input price date with max price date
+        return maxDate > inputDate;
+    },
+
+    bindReloadPageAjax: function () {
+        if ($(".js-bulk-query-pending").length) {
+            var reloadPage = setInterval(function () {
+                $.ajax({
+                    url: '/my-account/product-bulk-query/queries-in-process',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function (response) {
+                        if (response.length == 0) {
+                            window.location.reload();
+                        }
+                    }
+                });
+            }, 5000);
+        }
+    },
+
+    bindExportConfiguration: function () {
+        var container = $('#product-bulk-query-export-configuration');
+        if (container.length && container.data('export-configuration-url')) {
+            $.ajax({
+                url: container.data('export-configuration-url'),
+                type: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    exportConfigurationObject = data;
+                    $('.product-bulk-query--lazy-load ').css("display", "block")
+                }
+            });
+
+            $('.js-bulk-attribute-toggle').change(function () {
+                if (Object.keys(exportConfigurationObject).length > 0) {
+                    var attributeToChange = $(this).data('attribute-toggle');
+                    var attributeArray = attributeToChange.split('---');
+                    var visibleState = ($(this).prop("checked")) ? true : false;
+
+                    for (var i in exportConfigurationObject[attributeArray[0]]) {
+                        if (exportConfigurationObject[attributeArray[0]][i].id == attributeArray[1]) {
+                            var productType = exportConfigurationObject[attributeArray[0]][i];
+
+                            for (var j in productType[attributeArray[2]]) {
+                                if (productType[attributeArray[2]][j].id == attributeArray[3]) {
+                                    var attributeType = productType[attributeArray[2]][j];
+                                    attributeType.visible = visibleState;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            $(document).on("click", '.js-product-bulk-query-export-configuration-update', function (e) {
+                var jsonString = JSON.stringify(exportConfigurationObject, undefined, 4);
+                console.log(jsonString);
+                if (jsonString.length > 0) {
+                    $(this).attr('disabled', true);
+
+                    $.ajax({
+                        url: container.data('export-configuration-url'),
+                        type: 'POST',
+                        dataType: 'json',
+                        contentType: 'application/json',
+                        data: jsonString,
+                        async: true,
+                        success: function () {
+
+                            window.location.href = $(".js-product-bulk-query-export-configuration-update").data('redirect-url');
+                        }
+                    });
+                }
+            });
+        }
+    },
+
+    openPopup: function (modalDialog, cb, className) {
+        var title = $('.bulk-query' + '-' + modalDialog + '-popup-title-holder').html(),
+            content = $('.bulk-query' + '-' + modalDialog + '-popup-content-holder').html();
+
+        ACC.colorbox.open(title, {
+            html: content,
+            className: className,
+            width: 700,
+            onComplete: function () {
+                ACC.productBulkQuery.bindStartDate();
+                ACC.colorbox.resize();
+                cb && cb();
+            }
+        });
+    },
+
+    bindStartDate: function () {
+        var visibleInputField = $('.js-bulkQueryStartDate');
+        var valueInputField = $('.js-bulkQueryStartDateValue');
+
+        var lang = visibleInputField.data('language');
+        var regional = $.datepicker.regional[lang];
+        if (regional === undefined) {
+            regional = $.datepicker.regional['en'];
+        }
+
+        $.datepicker.setDefaults(regional);
+        visibleInputField.datepicker({
+            minDate: visibleInputField.data('minDate'),
+            maxDate: visibleInputField.data('maxDate'),
+            altField: '.js-bulkQueryStartDateValue',
+            altFormat: 'yy-mm-dd',
+            onClose: function () {
+                var date = $.datepicker.parseDate("yy-mm-dd", valueInputField.attr('value'));
+                visibleInputField.val($.datepicker.formatDate(regional.dateFormat, date));
+            }
+        });
+    },
+
+    bindGlobalExport: function () {
+        $("[data-perform-bulk-query]").click(function () {
+            const identifiers = [];
+
+            $("data.product-identifier").each(function () {
+               identifiers.push($(this).val());
+            });
+
+            const currentTime = new Date();
+            const name = encodeURIComponent(
+                currentTime.getFullYear() +
+                (currentTime.getMonth() + 1).toString().padStart(2, "0") +
+                currentTime.getDate().toString().padStart(2, "0") +
+                currentTime.getHours().toString().padStart(2, "0") +
+                currentTime.getMinutes().toString().padStart(2, "0") +
+                "_" +
+                $(this).data("perform-bulk-query") +
+                "_Export"
+            );
+
+            $.ajax({
+                url: "/my-account/product-bulk-query/direct-product-bulk-query?code=" + name + "&name=" + name,
+                type: "POST",
+                dataType: "json",
+                contentType: 'application/json',
+                data: JSON.stringify(identifiers),
+                async: true,
+                xhrFields: {
+                    withCredentials: true
+                },
+                complete: function () {
+                    $(".product-bulk-query-alert").removeClass("hidden");
+
+                    if ($(".product-bulk-query-alert").hasClass("no-scroll")) {
+                        return;
+                    }
+
+                    window.scrollTo(0, 0);
+                }
+            })
+        });
+    }
+};

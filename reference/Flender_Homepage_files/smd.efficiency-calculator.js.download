@@ -1,0 +1,343 @@
+ACC.efficiencyCalculator = {
+
+    _autoload: [
+        ["bindIntersectionObserver", $(".efficiency-calculator").length > 0],
+    ],
+
+    sheet: $(".efficiency-calculator").length > 0 && document.createElement("style"),
+    rangeSlider: document.querySelector(".range-slider input"),
+    rangeInput: document.querySelector(".range-amount input"),
+    perDayInput: document.querySelectorAll(".machine-times-per-day input[name='perDay']"),
+    perWeekInput: document.querySelectorAll(".machine-times-per-week input[name='perWeek']"),
+    locationSelected: document.querySelector(".efficiency-calculator-location--selected"),
+    locationDropdown: document.querySelectorAll(".efficiency-calculator-location .dropdown-menu li a"),
+    contactButton: document.querySelector(".efficiency-calculator-buttons--contact"),
+    infoButton: document.querySelector(".efficiency-calculator-buttons--info"),
+    efficiencyFlender: $(".efficiency-calculator").length > 0 ? document.querySelector(".efficiency-calculator-input").dataset.efficencyFlender : 0.00,
+    efficiencyOthers: $(".efficiency-calculator").length > 0 ? document.querySelector(".efficiency-calculator-input").dataset.efficencyOthers : 0.9,
+    localeString: document.querySelector("html").getAttribute('lang'),
+    currency: $(".efficiency-calculator").length > 0 ? document.querySelector(".flender-saved-money").dataset.savedCurrency : '',
+    tons: $(".efficiency-calculator").length > 0 ? document.querySelector(".flender-saved-kwh").dataset.savedUnit : '',
+    track: [
+        "webkit-slider-runnable-track",
+        "moz-range-track",
+        "ms-track",
+    ],
+    thumb: [
+        "webkit-slider-thumb",
+        "moz-range-thumb",
+        "ms-thumb",
+    ],
+
+    getTrackStyle: function (el) {
+        var convertedVal = ACC.efficiencyCalculator.convertNumber(el.value, ACC.efficiencyCalculator.localeString),
+            curVal = parseInt(convertedVal / 500) * 500,
+            val = (curVal) * 4 / 500,
+            style = "",
+            allStep = document.querySelectorAll(".range-step-divider li");
+
+        allStep.forEach(function (elem) {
+            elem.classList.remove("active", "selected");
+        });
+
+        var selectedStep = document.querySelector(".range-step-divider").querySelector("li:nth-child(" + ((curVal + 500) / 500) + ")"),
+            rangeSliderStepWidth = curVal !== 0 ? ACC.efficiencyCalculator.rangeSlider.offsetWidth / 25 : 0;
+
+        if (selectedStep) selectedStep.classList.add("active", "selected");
+
+        for (var i = 0; i < ACC.efficiencyCalculator.track.length; i++) {
+            style += ".efficiency-calculator .range-slider {background: linear-gradient(to right, #6095D3 0%, #6095D3 " + val + "%, #ffffff " + val + "%, #ffffff 100%)}";
+
+            style += ".efficiency-calculator .range-slider input::-" + ACC.efficiencyCalculator.track[i] + "{background: linear-gradient(to right, #6095D3 0%, #6095D3 " + val + "%, #ffffff " + val + "%, #ffffff 100%)}";
+            style += ".efficiency-calculator .range-slider input::-" + ACC.efficiencyCalculator.thumb[i] + "{left:" + ((curVal / 500) * rangeSliderStepWidth - (rangeSliderStepWidth / 2)) + "px}";
+        }
+        style += ".efficiency-calculator .range-slider input::-moz-range-thumb{transform: translateX(" + ((curVal / 500) - rangeSliderStepWidth / 2) + "px)}";
+
+        return style;
+    },
+
+    setRangeBars: function (el) {
+        var minConsumptionFlender = ACC.efficiencyCalculator.consumptionMoneyCalculation(50, ACC.efficiencyCalculator.efficiencyFlender, 8, 5),
+            maxConsumptionFlender = ACC.efficiencyCalculator.consumptionMoneyCalculation(12500, ACC.efficiencyCalculator.efficiencyFlender, 24, 7),
+            selectedConsumptionFlender = document.querySelector(".flender-saved-money-value-input").value,
+            savedMoneyRatio = document.querySelector('.money-bars').getAttribute('data-money-ratio'),
+            rangeBarFlenderMoney = document.querySelector(".money-bar-flender"),
+            rangeBarOthersMoney = document.querySelector(".money-bar-others"),
+            val = ((parseFloat(selectedConsumptionFlender) - minConsumptionFlender) * 100) / (maxConsumptionFlender - minConsumptionFlender),
+            percentageFlender = Math.round(val),
+            percentageOthers = Math.round(val * savedMoneyRatio),
+            barMultiplierVal = Math.round(50 + ((100 * (parseFloat(selectedConsumptionFlender) / 3000)) * 0.39)),
+            barMultiplierTweaker = barMultiplierVal < 150 ? barMultiplierVal : 150;
+
+        rangeBarFlenderMoney.style.width = "calc(" + percentageFlender + "% + " + barMultiplierTweaker + "px)";
+        rangeBarOthersMoney.style.width = "calc(" + percentageOthers + "% + " + barMultiplierTweaker * savedMoneyRatio + "px)";
+    },
+
+    setSavedMoney: function (el) {
+        var convertedVal = ACC.efficiencyCalculator.convertNumber(el.value, ACC.efficiencyCalculator.localeString),
+            curVal = convertedVal > 50 ? convertedVal : 50,
+            perDayValue = document.querySelector(".machine-times-per-day input[name='perDay']:checked").value,
+            perWeekValue = document.querySelector(".machine-times-per-week input[name='perWeek']:checked").value,
+            consumptionFlender = ACC.efficiencyCalculator.consumptionMoneyCalculation(curVal, Number(ACC.efficiencyCalculator.efficiencyFlender), perDayValue, perWeekValue),
+            consumptionOthers = ACC.efficiencyCalculator.consumptionMoneyCalculation(curVal, Number(ACC.efficiencyCalculator.efficiencyOthers), perDayValue, perWeekValue),
+            valueEl = document.querySelector(".flender-saved-money-value"),
+            oldVal = document.querySelector(".flender-saved-money-value-input").value > 0 ? document.querySelector(".flender-saved-money-value-input").value : 0,
+            newVal = Number(consumptionOthers - consumptionFlender);
+
+        document.querySelector(".flender-saved-money-value-input").value = Number(consumptionOthers - consumptionFlender).toFixed(2);
+        document.querySelector(".flender-saved-money-value").innerHTML = Number(consumptionOthers - consumptionFlender).toLocaleString(ACC.efficiencyCalculator.localeString, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+
+
+        ACC.efficiencyCalculator.setSavedMoneyRatio(consumptionFlender, consumptionOthers);
+        ACC.efficiencyCalculator.animateSavedConsumtionVal(valueEl, oldVal, newVal, 2, ACC.efficiencyCalculator.currency);
+    },
+
+    setSavedMoneyRatio: function (flender, others) {
+        var savedMoneyRatio = (flender / others).toString(),
+            savedMoneyRatioAttribute = document.querySelector('.money-bars');
+
+        savedMoneyRatioAttribute.setAttribute('data-money-ratio', savedMoneyRatio);
+    },
+
+    setSavedkWh: function (el) {
+        var convertedVal = ACC.efficiencyCalculator.convertNumber(el.value, ACC.efficiencyCalculator.localeString),
+            curVal = convertedVal > 50 ? convertedVal : 50,
+            perDayValue = document.querySelector(".machine-times-per-day input[name='perDay']:checked").value,
+            perWeekValue = document.querySelector(".machine-times-per-week input[name='perWeek']:checked").value,
+            consumptionFlender = ACC.efficiencyCalculator.consumptionkWhCalculation(curVal, ACC.efficiencyCalculator.efficiencyFlender, perDayValue, perWeekValue),
+            consumptionOthers = ACC.efficiencyCalculator.consumptionkWhCalculation(curVal, ACC.efficiencyCalculator.efficiencyOthers, perDayValue, perWeekValue),
+            valueEl = document.querySelector(".flender-saved-kwh-value"),
+            oldVal = document.querySelector(".flender-saved-kwh-value-input").value > 0 ? document.querySelector(".flender-saved-kwh-value-input").value : 0,
+            newVal = Number(consumptionFlender - consumptionOthers);
+
+        document.querySelector(".flender-saved-kwh-value-input").value = Number(consumptionFlender - consumptionOthers).toFixed(1);
+        document.querySelector(".flender-saved-kwh-value").setAttribute('data-number', Number(consumptionFlender - consumptionOthers).toLocaleString(ACC.efficiencyCalculator.localeString, {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1
+        }));
+
+        //ACC.efficiencyCalculator.setSavedkWhRatio(consumptionFlender, consumptionOthers);
+        ACC.efficiencyCalculator.animateSavedConsumtionVal(valueEl, oldVal, newVal, 1, ACC.efficiencyCalculator.tons);
+    },
+
+    /*
+    setSavedkWhRatio: function (flender, others) {
+        var savedkWhRatio = (flender / others),
+            savedkWhRatioAttribute = document.querySelector('.kwh-bars');
+
+        savedkWhRatioAttribute.setAttribute('data-kwh-ratio', savedkWhRatio);
+    },
+     */
+
+    animateSavedConsumtionVal: function (valueEl, oldVal, newVal, digits, unit) {
+        var items = gsap.utils.toArray(valueEl),
+            oldValParsed = parseFloat(oldVal).toFixed(digits),
+            newValParsed = parseFloat(newVal).toFixed(digits);
+
+        if (oldValParsed === newValParsed) {
+            return false
+        }
+
+        items.forEach(function (item, i) {
+            var count = item,
+                zero = {val: oldValParsed};
+
+            gsap.to(zero, {
+                val: newValParsed,
+                duration: 1,
+                ease: "power1.in",
+                stagger: {
+                    each: 0.4,
+                    onUpdate: function () {
+                        count.textContent = Number(zero.val.toFixed(digits)).toLocaleString(ACC.efficiencyCalculator.localeString, {
+                            minimumFractionDigits: digits,
+                            maximumFractionDigits: digits
+                        });
+                        count.insertAdjacentHTML('beforeend', "<span> " + unit + "</span>");
+                    },
+                },
+            });
+
+        });
+    },
+
+    consumptionMoneyCalculation: function (curVal, efficiency, perDayValue, perWeekValue) {
+        var kWhPrice = ACC.efficiencyCalculator.calculateLocatedPricekWh();
+        return ((((curVal * (1 - efficiency) * 0.1) * perDayValue) * perWeekValue) * 52) * Number(kWhPrice);
+    },
+
+    calculateLocatedPricekWh: function (el) {
+        var averagePrice = ACC.efficiencyCalculator.locationSelected.getAttribute('data-average-usd'),
+            exchangeRate = ACC.efficiencyCalculator.locationSelected.getAttribute('data-exchange-rate'),
+            kWhPrice = Number(averagePrice * exchangeRate);
+
+        return kWhPrice;
+    },
+
+    consumptionkWhCalculation: function (curVal, efficiency, perDayValue, perWeekValue) {
+        var kgkWh = ACC.efficiencyCalculator.setLocatedKgkWh();
+        return curVal * perDayValue * perWeekValue * 52 * efficiency * kgkWh / 10000;
+    },
+
+    setLocatedKgkWh: function (el) {
+        var defaultkgkWh = ACC.efficiencyCalculator.locationSelected.getAttribute('data-average-kwh-default'),
+            locatedKgkWh = ACC.efficiencyCalculator.locationSelected.getAttribute('data-average-kwh'),
+            kgkWh;
+
+        if (locatedKgkWh !== defaultkgkWh) {
+            kgkWh = Number(locatedKgkWh);
+            document.querySelector(".flender-saved-kwh-label--average").style.display = "none"
+        } else {
+            kgkWh = Number(defaultkgkWh);
+            document.querySelector(".flender-saved-kwh-label--average").style.display = "block"
+        }
+
+        return kgkWh;
+    },
+
+    setRangeInput: function (el) {
+        var val = new Intl.NumberFormat().format(el.value);
+
+        ACC.efficiencyCalculator.rangeInput.value = (el.value > 50 ? val : 50);
+    },
+
+    setRangeSlider: function (el) {
+        ACC.efficiencyCalculator.rangeSlider.value = parseInt(el.value / 500) * 500;
+    },
+
+    refreshCalculator: function (el) {
+        ACC.efficiencyCalculator.sheet.textContent = ACC.efficiencyCalculator.getTrackStyle(el);
+        ACC.efficiencyCalculator.setSavedMoney(el);
+        ACC.efficiencyCalculator.setSavedkWh(el);
+        ACC.efficiencyCalculator.setRangeBars(el);
+        document.querySelector(".efficiency-calculator-location--average-value").innerHTML = Math.ceil(Number(ACC.efficiencyCalculator.calculateLocatedPricekWh() * 100)).toString();
+    },
+
+    sortLocationDropdown: function () {
+        var dropdown = document.querySelector(".efficiency-calculator-location ul");
+        Array.from(dropdown.getElementsByTagName("li")).sort(function (a, b) {
+            return a.textContent.localeCompare(b.textContent);
+        }).forEach(function (li) {
+            return dropdown.appendChild(li);
+        });
+    },
+
+    initCalculator: function () {
+        document.querySelector(".efficiency-calculator");
+
+        document.body.appendChild(ACC.efficiencyCalculator.sheet);
+
+        ACC.efficiencyCalculator.sortLocationDropdown();
+
+        window.addEventListener('resize', function (event) {
+            ACC.efficiencyCalculator.sheet.textContent = ACC.efficiencyCalculator.getTrackStyle(ACC.efficiencyCalculator.rangeSlider);
+        }, true);
+
+        ACC.efficiencyCalculator.rangeSlider.addEventListener("input", function (e) {
+            ACC.efficiencyCalculator.setRangeInput(ACC.efficiencyCalculator.rangeSlider);
+            ACC.efficiencyCalculator.refreshCalculator(ACC.efficiencyCalculator.rangeSlider);
+        });
+
+        ACC.efficiencyCalculator.rangeInput.addEventListener("change", function (e) {
+            var val = ACC.efficiencyCalculator.convertNumber(this.value, ACC.efficiencyCalculator.localeString);
+
+            if (val < 50) this.value = 50;
+            if (val > 12500) this.value = 12500;
+            ACC.efficiencyCalculator.setRangeSlider(ACC.efficiencyCalculator.rangeInput);
+            ACC.efficiencyCalculator.refreshCalculator(ACC.efficiencyCalculator.rangeInput);
+        });
+
+        ACC.efficiencyCalculator.perDayInput.forEach(function (elem) {
+            elem.addEventListener("change", function (event) {
+                ACC.efficiencyCalculator.refreshCalculator(ACC.efficiencyCalculator.rangeInput);
+            });
+        });
+
+        ACC.efficiencyCalculator.perWeekInput.forEach(function (elem) {
+            elem.addEventListener("change", function (event) {
+                ACC.efficiencyCalculator.refreshCalculator(ACC.efficiencyCalculator.rangeInput);
+            });
+        });
+
+        ACC.efficiencyCalculator.locationDropdown.forEach(function (elem) {
+            elem.addEventListener("click", function (event) {
+                event.preventDefault();
+
+                ACC.efficiencyCalculator.locationSelected.innerHTML = this.innerHTML;
+                ACC.efficiencyCalculator.locationSelected.setAttribute('data-average-usd', this.getAttribute('data-average-usd'));
+                if (this.getAttribute('data-average-kwh') !== "") {
+                    ACC.efficiencyCalculator.locationSelected.setAttribute('data-average-kwh', this.getAttribute('data-average-kwh'));
+                } else {
+                    ACC.efficiencyCalculator.locationSelected.setAttribute('data-average-kwh', "");
+                }
+
+                ACC.efficiencyCalculator.refreshCalculator(ACC.efficiencyCalculator.rangeInput);
+            });
+        });
+
+        ACC.efficiencyCalculator.contactButton.addEventListener("click", function (e) {
+            event.preventDefault();
+            var scrollToId = this.getAttribute('data-scroll-to')
+
+            $('body,html').animate({
+                scrollTop: $(scrollToId).offset().top - 100
+            }, 800);
+            return false;
+        });
+
+        ACC.efficiencyCalculator.infoButton.addEventListener("click", function (e) {
+            event.preventDefault();
+            var popupTitle = ACC.common.encodeHtml($(this).data('popup-title'));
+
+            ACC.colorbox.open(popupTitle, {
+                inline: true,
+                height: false,
+                maxWidth: "100%",
+                width: "800px",
+                href: "#popup-efficiency-calculator-info",
+                onComplete: function () {
+                    $(this).colorbox.resize();
+                }
+            });
+        });
+
+        var setStartValueSlider = setInterval(function () {
+            if (Number(ACC.efficiencyCalculator.rangeSlider.value / 500) >= 18) {
+                ACC.efficiencyCalculator.rangeSlider.value = (18 * 500);
+                clearStartValueSlider();
+            }
+            ACC.efficiencyCalculator.rangeSlider.value = Number(ACC.efficiencyCalculator.rangeSlider.value) + 500;
+            ACC.efficiencyCalculator.setRangeInput(ACC.efficiencyCalculator.rangeSlider);
+            ACC.efficiencyCalculator.refreshCalculator(ACC.efficiencyCalculator.rangeSlider);
+        }, 50);
+
+        var clearStartValueSlider = function () {
+            clearInterval(setStartValueSlider);
+        }
+    },
+
+    bindIntersectionObserver: function () {
+        const efficiencyCalculator = document.querySelector('.efficiency-calculator')
+        const observer = new window.IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) {
+                ACC.efficiencyCalculator.initCalculator();
+                observer.unobserve(efficiencyCalculator);
+            }
+        }, {
+            root: null,
+            threshold: 0.5,
+        })
+        observer.observe(efficiencyCalculator);
+    },
+
+    convertNumber: function (num, locale) {
+        const {format} = new Intl.NumberFormat(locale);
+        const [, decimalSign] = /^0(.)1$/.exec(format(0.1));
+        return +num
+            .replace(new RegExp(`[^${decimalSign}\\d]`, 'g'), '')
+            .replace(decimalSign, '.');
+    }
+}

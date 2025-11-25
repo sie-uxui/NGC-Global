@@ -1,0 +1,70 @@
+ACC.smdPlants = {
+
+    init : function() {
+        return new Promise(function (resolve, reject) {
+            //console.log("ACC.smdPlants.init");
+            ($(".page-PlantPage").length > 0) ? resolve() : reject();
+        });
+    },
+
+    initCarousel : function() {
+        return new Promise(function (resolve, reject) {
+            $("#owl-plants").owlCarousel({
+                navigation: true,
+                navigationText : ["", ""]
+            });
+            resolve();
+        });
+    },
+
+    locateUser : function() {
+        return new Promise(function (resolve, reject) {
+            //console.log("ACC.smdPlants.locateUser");
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function (position) {
+                        resolve(position.coords);
+                    },
+                    function (error) {
+                        console.log("Could not get current user position: " + error.code + "/" + error.message);
+                        reject("Could not get current user position: " + error.code + "/" + error.message);
+                    }
+                );
+            } else {
+                reject("navigator.geolocation unavailable");
+            }
+        });
+    },
+
+    updateRoutingLinks: function(userCoordinates) {
+        return new Promise(function (resolve, reject) {
+            //console.log("ACC.smdPlants.updateRoutingLinks");
+            $(".plant-routing-link").each(function(){ACC.smdPlants.renderLink($(this), userCoordinates);});
+            resolve();
+        });
+    },
+
+    renderLink: function(link, coords) {
+        if (coords.latitude && coords.longitude && link.attr('latitude') && link.attr('longitude')) {
+            var start = coords.latitude+','+coords.longitude
+            var destination = link.attr('latitude') + ',' + link.attr('longitude');
+            link.attr('href', 'http://maps.google.com/maps?saddr=' + start + '&daddr=' + destination)
+        } else {
+            console.error("not all attributes available, keep orioginal link:");
+            console.error(link);
+        }
+    }
+};
+
+$(document).ready(function ()
+{
+    ACC.smdPlants.init()
+        .then(ACC.smdPlants.initCarousel) // Promise-Chain!
+        .then(ACC.smdPlants.locateUser)
+        .then(ACC.smdPlants.updateRoutingLinks)
+        .catch(function(error) {
+            if (typeof error !== 'undefined') {
+                console.log(error);
+            }
+        });
+});

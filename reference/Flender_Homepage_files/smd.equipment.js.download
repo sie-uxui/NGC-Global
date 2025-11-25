@@ -1,0 +1,387 @@
+ACC.equipment = {
+
+    _autoload: [
+        "bindEditPopupLink",
+        "bindConfirmPopupLink",
+        "bindHistoryPopupLink",
+        "bindSavePopupValue",
+        "bindHandleFavorite",
+        "bindShowDetailView",
+        "bindShowListView",
+        "bindHandleFilter",
+        "bindKitChange",
+        "bindComponentTypeChange",
+        "saveCookieDetailView",
+        "showEquipmentTable",
+        "loadCorrespondingOrder",
+        "loadAssemblyDrawing",
+        "bindPartnerButton",
+        "bindEquipmentSearchInfoLink",
+        "bindAddEquipmentButtonToEquipments"
+    ],
+
+    bindEditPopupLink: function ()
+    {
+        $(document).on("click",'.js_edit-popup-link', function (e) {
+            var $link = $(e.currentTarget),
+                currentDesignation = $link.data('currentdesignation'),
+                equipmentNo = $link.data('equipmentno'),
+                cb = function () {
+                    var $form = $('#colorbox form.edit-equipment-designation');
+                    $form.find("input[name='customerEquipmentDesignation']").val(currentDesignation);
+                    $form.find("input[name='equipmentNumber']").val(equipmentNo);
+                };
+            ACC.equipment.openPopup(true, cb);
+            return false;
+        });
+    },
+
+    bindPartnerButton: function ()
+    {
+        var $form = $('#searchEquipmentForm'),
+            $searchBtn = $form.find('.js-conditional-equipment-search-btn'),
+            $input = $form.find('#equipmentNumber');
+        if (!$searchBtn.length) {
+            return;
+        }
+
+        var checkValidValue = function() {
+            var value = $input.val();
+            return value && (typeof value === 'string' || value instanceof String) &&
+                value.replace(/\s/g,'').replace(/\*/g, '').length >= 7
+        };
+
+        // refresh state on page reload
+        if (checkValidValue()) {
+            $searchBtn.prop("disabled", false);
+        }
+
+        $(document).on("keyup",'#equipmentNumber', function (e) {
+            if (checkValidValue()) {
+                $searchBtn.prop("disabled", false);
+            } else {
+                $searchBtn.prop("disabled", "disabled");
+            }
+            return false;
+        });
+    },
+
+    bindConfirmPopupLink: function ()
+    {
+        $(document).on("click",'.js_confirm-remove-favorite', function (e) {
+            var $link = $(e.currentTarget),
+                equipmentNo = $link.data('equipmentno'),
+                cb = function () {
+                    var $removeLink = $("#colorbox .js_add-favorite");
+                    $removeLink.data("equipmentno", equipmentNo);
+                };
+            ACC.equipment.openPopup(false, cb);
+            return false;
+        });
+    },
+
+    bindHistoryPopupLink: function ()
+    {
+        $(document).on("click",'.js_open-history-link', function (e) {
+            e && e.preventDefault();
+
+            var $link = $(this),
+                refId = $link.data("refid"),
+                type = $link.data("type");
+            ACC.equipment.openHistoryPopup(refId, type);
+            return false;
+        });
+    },
+
+    bindSavePopupValue: function ()
+    {
+        $(document).on("submit",'#colorbox form.edit-equipment-designation', function (e) {
+            e.preventDefault();
+            var $form = $(this);
+
+            $form.find("button").prop("disabled", "disabled");
+
+            $.ajax({
+                url: $form.attr('action'),
+                method: 'POST',
+                data: $form.serialize(),
+                success: function ()
+                {
+                    window.location.reload();
+                }
+            });
+
+            return false;
+        });
+    },
+
+    bindHandleFavorite: function () {
+        $(document).on("click",'.js_remove-favorite, .js_add-favorite', function (e) {
+            var $link = $(e.currentTarget),
+                equipmentNo = $link.data('equipmentno');
+
+            $link.siblings(".spinner").css("display", "block");
+
+            $.ajax({
+                url: $link.attr('href'),
+                method: 'POST',
+                data: {'equipmentNumber': equipmentNo},
+                success: function ()
+                {
+                    window.location.reload();
+                }
+            });
+
+            return false;
+        });
+    },
+
+    bindShowDetailView: function () {
+        $(document).on("click",'.js-equipment-view__detail', function (e) {
+            e.preventDefault();
+            $(".page-my-equipments").addClass("equipment-detail");
+            $.cookie("myequipmentview", "grid", {path : "/"});
+        });
+    },
+
+    bindShowListView: function () {
+        $(document).on("click",'.js-equipment-view__list', function (e) {
+            e.preventDefault();
+            $(".page-my-equipments").removeClass("equipment-detail");
+            $.cookie("myequipmentview", "list", {path : "/"});
+        });
+    },
+
+    openPopup: function (isEditModal, cb) {
+        var title = $('.equipment' + (isEditModal ? '' : '-remove') + '-popup-title-holder').html(),
+            content = $('.equipment' + (isEditModal ? '' : '-remove') + '-popup-content-holder').html();
+
+        ACC.colorbox.open(title,{
+            html: content,
+            width: 700,
+            onComplete: function(){
+                ACC.colorbox.resize();
+                cb && cb();
+            }
+        });
+    },
+
+    openHistoryPopup: function (refId, type) {
+        var $title = $('.equipment-history-popup-title-holder').find(type === 'ORDER' ? '.js_orderDetailsTitle' : '.js_quoteDetailsTitle'),
+            $content = $('.equipment-history-popup-content-holder').children().clone().show();
+        ACC.colorbox.open($title.html(),{
+            html: $content,
+            width: '80%',
+            height: '95%',
+            onComplete: function(){
+                ACC.equipment.loadCorrespondingOrder(true, refId, function() {
+                    ACC.colorbox.resize({
+                        height: '95%',
+                        maxHeight: '95%'
+                    });
+                });
+            }
+        });
+    },
+
+    bindHandleFilter: function () {
+        $('.js-equipment-sort').on('change', function() {
+            if(this.value === "favorites") {
+                $(".js-equipment").each(function() {
+                    if($(this).data("favorite") !== "favorite") {
+                        $(this).css("display", "none");
+                    }
+                });
+            } else {
+                $(".js-equipment").each(function() {
+                    $(".js-equipment").css("display", "table-row");
+                });
+            }
+        });
+    },
+
+    bindKitChange: function () {
+        $(document).on("change", ".js-service-select, .js-package-select", function (e) {
+            var $select = $(this),
+                kitType = $select.data("kit-type"),
+                kitCode = $select.children("option:selected").val(),
+                equipmentNo = $select.data("equipment-no"),
+                constructionType = $select.data("construction-type"),
+                url = $select.closest('form').data("kit-components-url"),
+                $table = $select.closest('form').siblings(".account-overview-table").children("form"),
+                $spinner = $select.siblings(".spinner");
+
+            $table.html('');
+            $spinner.css("display", "block");
+
+            $.ajax({
+                url: [url, kitType, kitCode].join("/") + '?equipmentNo=' + equipmentNo,
+                method: 'POST',
+                data: {'constructionType': constructionType},
+                success: function (response)
+                {
+                    $table.html(response);
+                    $spinner.css("display", "none");
+                    ACC.product.enableAddToCartButton();
+                    ACC.myprojects.initPageEvents();
+                }
+            });
+
+            return false;
+        });
+    },
+
+    bindComponentTypeChange: function () {
+        $(document).on("change", "#myEquipmentComponentListTypeSelect", function () {
+            var $select = $(this),
+                $form = $select.closest("form");
+            $form.submit();
+        });
+    },
+
+    saveCookieDetailView: function () {
+        if($.cookie("myequipmentview") === "grid" ){
+            $(".page-my-equipments").addClass("equipment-detail");
+        } else {
+            $(".page-my-equipments").removeClass("equipment-detail");
+        }
+    },
+
+    showEquipmentTable: function () {
+        $(".page-my-equipments .account-overview-table").css("display", "block")
+    },
+
+    loadCorrespondingOrder: function (isHistory, refId, cb) {
+        var $orderDiv = isHistory ? $(".page-equipment-details #colorbox #correspondingOrderHistory") :
+            $(".page-equipment-details #correspondingOrder");
+
+        if ($orderDiv.length) {
+            var orderDetailsUrl = $orderDiv.attr('data-orderdetailsurl') + (refId ? refId : '');
+
+            if (!isHistory) {
+                $orderDiv.css("display", "block");
+            }
+            $orderDiv.find('.spinner').show();
+
+            $.ajax({
+                url: orderDetailsUrl,
+                method: 'GET',
+                success: function (response)
+                {
+                    $orderDiv.find('.content').replaceWith(response);
+                },
+                error: function (response, xhr)
+                {
+                    if (response && response !== 200) {
+                        $orderDiv.find('.spinner').hide();
+                        $orderDiv.find('.error-div').css('display', 'block');
+                    }
+                },
+                complete: function() {
+                    cb && cb();
+                }
+            });
+        }
+    },
+
+    loadAssemblyDrawing: function () {
+        $(document).on("click",'.load-assembly-drawings', function (e) {
+            e.preventDefault();
+            var documentNumber = $(this).attr("aria-controls");
+            var object = $("#" + documentNumber + " object");
+            var pdfLink = object.data("link");
+
+            if(object.attr("data") === undefined) {
+                object.attr("data", pdfLink)
+            }
+        });
+    },
+
+    onDocumentLoad: function () {
+        ACC.equipment.checkCompleteState();
+    },
+
+    checkCompleteState: function () {
+        var $area = $('#assemblyDrawingBody'),
+            $obj = $area.find('object'),
+            $errorMsg = $obj.find('p'),
+            isErrorMsg = $errorMsg.length && $errorMsg.is(":visible"),
+            isContent = !!$.trim($obj.contents().find( "body" ).html());
+
+        if (isErrorMsg || isContent) {
+            $area.find('.spinner').hide();
+            return;
+        }
+        setTimeout(ACC.equipment.checkCompleteState, 500);
+    },
+
+    bindEquipmentSearchInfoLink: function () {
+        $(document).on("click",'.js-equipment-search-info-link', function (e) {
+            e.preventDefault();
+            var title = $('#equipment-search-info-popup-title').html();
+            var content = $('#equipment-search-info-popup-content').html();
+
+            ACC.colorbox.open(title,{
+                html: content,
+                maxHeight: '50%',
+                width: 700,
+                height: false,
+                onComplete: function(){
+                    //ACC.colorbox.resize();
+                }
+            });
+        })
+    },
+
+    bindAddEquipmentButtonToEquipments: function () {
+        $("[data-add-equipments]").each(function () {
+           const submitButton = $(this);
+           submitButton.prop("disabled", true);
+
+           const addToProjectButton = $(".add-to-project-btn");
+           const projectSelection = $("#projectCode");
+
+           addToProjectButton.prop("disabled", true);
+
+           const equipmentNumber = submitButton.data("add-equipments");
+           if (!equipmentNumber) {
+               return;
+           }
+
+           const form = submitButton.parents(`form[data-equipments-form='${equipmentNumber}']`);
+           if (!form.length) {
+               return;
+           }
+
+           const spareParts = form.find("input[name=componentNumbers\\[\\]]");
+           spareParts.change(function () {
+               let buttonActivated = false;
+               spareParts.each(function () {
+                   buttonActivated ||= $(this).prop("checked");
+               });
+
+               submitButton.prop("disabled", !buttonActivated);
+               if (!!projectSelection.val()) {
+                   addToProjectButton.prop("disabled", !buttonActivated);
+               }
+           });
+
+           $(".js-project-selector").change(function (event) {
+            const addToProjectButton = $(".add-to-project-btn");
+            const projectSelection = $("#projectCode");
+
+            if (!projectSelection.val()) {
+                return;
+            }
+
+            let buttonActivated = false;
+            spareParts.each(function () {
+                buttonActivated ||= $(this).prop("checked");
+            });
+
+            addToProjectButton.prop("disabled", !buttonActivated);
+            event.stopButtonHandling = true;
+           });
+        });
+    }
+};

@@ -1,0 +1,194 @@
+ACC.lifecycleAnimation = {
+
+    _autoload: [
+        "bindLifecycleAnimation",
+    ],
+
+    bindLifecycleAnimation: function () {
+
+        let animationWrapperElement = document.getElementById("infographic-wrapper");
+
+        if (typeof animationWrapperElement !== "undefined" && animationWrapperElement !== null) {
+
+            let infographic__contentItems = gsap.utils.toArray('.infographic-animation .infographic__item');
+            let infographic__contentItemsContent = gsap.utils.toArray('.infographic__content__text');
+            let wrappeParentElement = document.getElementById('infographic-wrapper').parentElement;
+            wrappeParentElement.style.width = '100%';
+            const sectionLength = document.querySelectorAll('.infographic__section').length;
+            const firstSection = document.getElementById('first-section');
+            const secondSection = document.getElementById('second-section');
+            const thirdSection = document.getElementById('third-section');
+            var startRotationAngle = 30;
+            firstSection.addEventListener('click', event => {
+                gsap.to(window, {
+                    duration: 1,
+                    scrollTo: {
+                        y: '#gear',
+                        offsetY: 150
+                    }
+                });
+            });
+            secondSection.addEventListener('click', event => {
+                gsap.to(window, {
+                    duration: 1,
+                    scrollTo: {
+                        y: '#normal',
+                        offsetY: 150
+                    }
+                });
+            });
+            thirdSection.addEventListener('click', event => {
+                gsap.to(window, {
+                    duration: 1,
+                    scrollTo: {
+                        y: '#increased',
+                        offsetY: 150
+                    }
+                });
+            });
+
+            if (sectionLength > 3) {
+                startRotationAngle = 45;
+                const fourthSection = document.getElementById('fourth-section');
+                fourthSection.addEventListener('click', event => {
+                    gsap.to(window, {
+                        duration: 1,
+                        scrollTo: {
+                            y: '#lifecycle',
+                            offsetY: 150
+                        }
+                    });
+                });
+            } // animate each infographic__content item on scroll with css transforms
+
+
+            gsap.to('.infographic-circle', {
+                scrollTrigger: {
+                    trigger: '.infographic-animation',
+                    pin: '.infographic-circle--wrapper',
+                    start: 'top 50px',
+                    end: 'bottom 75%',
+                    scrub: true
+                }
+            });
+            infographic__contentItems.forEach(item => {
+                gsap.to(item, {
+                    scrollTrigger: {
+                        trigger: item,
+                        start: 'top center',
+                        end: 'bottom 25%',
+                        id: 'items',
+                        toggleClass: 'infographic__item--active'
+                    }
+                });
+            });
+            /**
+             * Animate Circle
+             */
+            // 1/4 section
+
+            const oneFourthTl = gsap.timeline({
+                scrollTrigger: {
+                    trigger: '#gear',
+                    start: 'top center',
+                    end: '10% 30%',
+                    id: 'first-section',
+                    scrub: 1.2
+                }
+            });
+            oneFourthTl.to('.infographic-circle #circle', {
+                rotate: startRotationAngle,
+                transformOrigin: 'center'
+            }, 0).to('.infographic-circle #arrow', {
+                fill: '#227DC6'
+            }, 0).to('.infographic-circle #arrow-wrapper', {
+                rotate: 45,
+                transformOrigin: 'center'
+            }, 0).to('.infographic-circle #first-section-text rect', {
+                fill: '#fff'
+            }, 0).to('.infographic-circle #first-section-text path', {
+                fill: '#fff'
+            }, 0).to('.infographic-circle #first-section-fill', {
+                fill: '#90B3E2'
+            }, 0); // 2/4 section
+
+            const twoFourthTl = gsap.timeline({
+                scrollTrigger: {
+                    trigger: '#normal',
+                    start: 'top center',
+                    end: '10% 30%',
+                    scrub: 1.2
+                }
+            });
+            twoFourthTl.to('.infographic-circle #circle', {
+                rotate: startRotationAngle + 360 / sectionLength,
+                transformOrigin: 'center'
+            }, 0).to('.infographic-circle #arrow-wrapper', {
+                rotate: 45,
+                transformOrigin: 'center'
+            }, 0).to('.infographic-circle #first-section-text rect', {
+                fill: '#697075'
+            }, 0).to('.infographic-circle #first-section-text path', {
+                fill: '#697075'
+            }, 0).to('.infographic-circle #first-section-fill', {
+                fill: '#c6c9cc'
+            }, 0).to('.infographic-circle #second-section-text path', {
+                fill: '#fff'
+            }, 0).to('.infographic-circle #second-section-fill', {
+                fill: '#90B3E2'
+            }, 0); // 3/4 section
+
+            const thirdFourthTl = gsap.timeline({
+                scrollTrigger: {
+                    trigger: '#increased',
+                    start: 'top center',
+                    end: '10% 30%',
+                    scrub: 1.2
+                }
+            });
+            thirdFourthTl.to('.infographic-circle #circle', {
+                rotate: startRotationAngle + 360 / sectionLength * 2,
+                transformOrigin: 'center'
+            }, 0).to('.infographic-circle #arrow-wrapper', {
+                rotate: 45,
+                transformOrigin: 'center'
+            }, 0).to('.infographic-circle #second-section-text path', {
+                fill: '#697075'
+            }, 0).to('.infographic-circle #second-section-fill', {
+                fill: '#c6c9cc'
+            }, 0).to('.infographic-circle #third-section-text path', {
+                fill: '#fff'
+            }, 0).to('.infographic-circle #third-section-fill', {
+                fill: '#90B3E2'
+            }, 0);
+
+            if (sectionLength > 3) {
+                // 4/4 section
+                const fourthFourthTl = gsap.timeline({
+                    scrollTrigger: {
+                        trigger: '#lifecycle',
+                        start: 'top center',
+                        end: '10% 30%',
+                        scrub: 1.2
+                    }
+                });
+                fourthFourthTl.to('.infographic-circle #circle', {
+                    rotate: 315,
+                    transformOrigin: 'center'
+                }, 0).to('.infographic-circle #arrow-wrapper', {
+                    rotate: 45,
+                    transformOrigin: 'center'
+                }, 0).to('.infographic-circle #third-section-text path', {
+                    fill: '#697075'
+                }, 0).to('.infographic-circle #third-section-fill', {
+                    fill: '#c6c9cc'
+                }, 0).to('.infographic-circle #fourth-section-text path', {
+                    fill: '#fff'
+                }, 0).to('.infographic-circle #fourth-section-fill', {
+                    fill: '#90B3E2'
+                }, 0);
+            }
+
+        }
+    }
+}
