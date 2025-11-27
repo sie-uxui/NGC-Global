@@ -395,10 +395,54 @@
         }
 
         // ========================================
+        // SCROLL ANIMATIONS - INTERSECTION OBSERVER
+        // ========================================
+
+        // Check if Intersection Observer is supported
+        if ('IntersectionObserver' in window) {
+            // Create observer with options
+            const observerOptions = {
+                root: null, // viewport
+                rootMargin: '0px 0px -100px 0px', // Trigger slightly before element is fully visible
+                threshold: 0.1 // Trigger when 10% of element is visible
+            };
+
+            // Callback function when elements intersect
+            const observerCallback = (entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        // Add visible class with a small delay for smoother effect
+                        setTimeout(() => {
+                            entry.target.classList.add('animate-visible');
+                        }, 50);
+
+                        // Stop observing this element after animation
+                        observer.unobserve(entry.target);
+                    }
+                });
+            };
+
+            // Create the observer
+            const scrollObserver = new IntersectionObserver(observerCallback, observerOptions);
+
+            // Select all elements to animate
+            const animatedElements = document.querySelectorAll('.animate-fade-in');
+
+            // Observe each element
+            animatedElements.forEach(element => {
+                scrollObserver.observe(element);
+            });
+        } else {
+            // Fallback for browsers that don't support Intersection Observer
+            // Just make everything visible immediately
+            $('.animate-fade-in').addClass('animate-visible');
+        }
+
+        // ========================================
         // CONSOLE MESSAGE
         // ========================================
 
-        console.log('%c NGC Marine Website ', 'background: #00224B; color: #fff; padding: 10px 20px; font-size: 16px; font-weight: bold;');
+        console.log('%c NGC Global Website ', 'background: #00224B; color: #fff; padding: 10px 20px; font-size: 16px; font-weight: bold;');
         console.log('%c Powered by Flender-inspired architecture ', 'color: #227dc6; font-size: 12px;');
 
     }); // End document ready

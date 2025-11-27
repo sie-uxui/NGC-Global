@@ -694,7 +694,7 @@ a:focus {
 .hero-text-box {
   background-color: rgba(0, 34, 75, 0.5);
   padding: 50px 60px;
-  max-width: 650px;
+  max-width: 700px;
   border-radius: 4px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
 }
@@ -757,13 +757,13 @@ a:focus {
   display: flex;
   gap: 20px;
   margin-top: 30px;
-  max-width: 650px;
+  max-width: 660px;
 }
 
 .hero-stat-box {
   flex: 1;
   background-color: rgba(0, 34, 75, 0.5);
-  padding: 20px;
+  padding: 25px;
   text-align: center;
   border-radius: 4px;
   border-left: 4px solid #227dc6;
@@ -1573,6 +1573,228 @@ button:focus {
 
   .infographic-circle--wrapper {
     max-width: 300px;
+  }
+}
+
+/* ========================================
+   SCROLL ANIMATIONS
+   ======================================== */
+
+/* Initial state for fade-in animation */
+.animate-fade-in {
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+/* Visible state when element enters viewport */
+.animate-visible {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+}
+
+/* Stagger delays for multiple elements */
+.animate-fade-in:nth-child(2) {
+  transition-delay: 0.1s;
+}
+
+.animate-fade-in:nth-child(3) {
+  transition-delay: 0.2s;
+}
+
+.animate-fade-in:nth-child(4) {
+  transition-delay: 0.3s;
+}
+
+.animate-fade-in:nth-child(5) {
+  transition-delay: 0.4s;
+}
+
+.animate-fade-in:nth-child(6) {
+  transition-delay: 0.5s;
+}
+
+.animate-fade-in:nth-child(7) {
+  transition-delay: 0.6s;
+}
+
+.animate-fade-in:nth-child(8) {
+  transition-delay: 0.7s;
+}
+
+/* ========================================
+   SPLIT BANNER SECTION (WIKOV-INSPIRED)
+   ======================================== */
+
+.split-banner-section {
+  display: flex;
+  width: 100%;
+  height: 75vh;
+  padding: 0;
+  margin: 0;
+}
+
+.split-panel {
+  flex: 1;
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+  transition: all 0.5s ease;
+}
+
+/* Hover effect - subtle zoom */
+.split-panel:hover {
+  transform: scale(1.02);
+}
+
+.split-panel-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(0, 34, 75, 0.68) 0%, rgba(0, 34, 75, 0.48) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px 80px;
+  transition: background 0.3s ease;
+}
+
+.split-panel:hover .split-panel-overlay {
+  background: linear-gradient(135deg, rgba(0, 34, 75, 0.58) 0%, rgba(0, 34, 75, 0.38) 100%);
+}
+
+.split-panel-overlay h2 {
+  color: #ffffff;
+  font-size: 38px;
+  font-weight: 700;
+  margin-bottom: 22px;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+}
+
+.split-panel-overlay p {
+  color: #ffffff;
+  font-size: 17px;
+  line-height: 1.5;
+  margin-bottom: 36px;
+  max-width: 520px;
+  font-weight: 400;
+}
+
+.split-panel-overlay .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 32px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  color: #ffffff;
+  background-color: #B01824;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  border-radius: 4px;
+  width: auto;
+  max-width: 250px;
+  text-align: center;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.split-panel-overlay .btn .arrow {
+  font-size: 18px;
+  transition: transform 0.3s ease;
+  display: inline-block;
+}
+
+.split-panel-overlay .btn:hover {
+  background-color: #8f1420;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(176, 24, 36, 0.4);
+}
+
+.split-panel-overlay .btn:hover .arrow {
+  transform: translateX(4px);
+}
+
+/* Placeholder background styling */
+.split-panel.placeholder-bg {
+  background-color: #2c3e50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.split-panel.placeholder-bg::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 24px;
+  color: rgba(255, 255, 255, 0.2);
+  font-weight: 300;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .split-banner-section {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .split-panel {
+    width: 100%;
+    height: 500px;
+  }
+
+  .split-panel:hover {
+    transform: none;
+  }
+
+  .split-panel-overlay {
+    padding: 40px 30px;
+  }
+
+  .split-panel-overlay h2 {
+    font-size: 36px;
+  }
+
+  .split-panel-overlay p {
+    font-size: 16px;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .split-panel {
+    height: 450px;
+  }
+
+  .split-panel-overlay {
+    padding: 30px 20px;
+  }
+
+  .split-panel-overlay h2 {
+    font-size: 28px;
+  }
+
+  .split-panel-overlay p {
+    font-size: 14px;
+  }
+
+  .split-panel-overlay .btn {
+    padding: 12px 30px;
+    font-size: 14px;
   }
 }
 
